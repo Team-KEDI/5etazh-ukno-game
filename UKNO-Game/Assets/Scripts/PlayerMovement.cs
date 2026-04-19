@@ -4,6 +4,7 @@ public class PlayerMovement : MonoBehaviour
 {
     public float speed = 5f;
     private Rigidbody rb;
+    public bool canMove = true;
 
     void Start()
     {
@@ -18,6 +19,10 @@ public class PlayerMovement : MonoBehaviour
 
         Vector3 move = (transform.right * moveX + transform.forward * moveZ).normalized;
 
-        rb.velocity = new Vector3(move.x * speed, rb.velocity.y, move.z * speed);
+        if(canMove)
+        {
+            rb.velocity = new Vector3(move.x * speed, rb.velocity.y, move.z * speed);
+        }
+        
     }
 }
