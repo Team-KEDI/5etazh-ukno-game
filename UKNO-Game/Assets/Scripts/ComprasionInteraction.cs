@@ -11,10 +11,11 @@ public class ComprasionInteractions : MonoBehaviour
 
     [Header("Объекты и точки")]
     public GameObject[] draggableObjects;   // 9 блоков
-    public Transform[] targetSpots;         // 9 пустых точек (3 столбца × 3 ряда)
-    public int[] spotToColumn;              // Для каждой точки индекс столбца (0,1,2)
+    public Transform[] targetSpots;         // 9 точек (столбцы × строки)
+    public int[] spotToColumn;              // для каждой точки (0..8): номер столбца (0,1,2)
+    public int[] spotToRow;                 // для каждой точки (0..8): номер строки (0,1,2)
 
-    [Header("Цвета")]
+    [Header("Цвета столбцов (основные)")]
     public Color[] colorOptions = new Color[] { Color.red, Color.green, Color.blue };
 
     [Header("UI")]
@@ -34,31 +35,47 @@ public class ComprasionInteractions : MonoBehaviour
 
     // Состояние блоков
     private GameObject[] spotOccupants;
-    private int[] objectSpotIndex;
+    private int[] objectSpotIndex;           // для каждого блока – индекс точки (-1 если не на точке)
     private int correctCount;
 
-    // Цвета столбцов
+    // Цвета столбцов (генерируются случайно)
     private Color[] columnColors = new Color[3];
 
-    // Система выбора для обмена
-    private int selectedBlockIndex = -1;          // индекс выбранного блока в draggableObjects
+    // Целевые параметры блоков (не меняются в игре)
+    private int[] blockTargetColumn = new int[9];
+    private int[] blockTargetRow = new int[9];
 
-    private Vector3 selectedBlockOriginalPosition; // исходная позиция выбранного блока
-    private Vector3 selectedBlockTargetPosition;   // позиция, куда выдвигаем
-    private Coroutine currentMoveCoroutine;        // текущая анимация выделенного блока
+    // Выделение блока
+    private int selectedBlockIndex = -1;
+    private Vector3 selectedBlockOriginalPosition;
+    private Coroutine currentMoveCoroutine;
 
     private Vector3 originalCameraPos;
     private Quaternion originalCameraRot;
 
     void Start()
     {
-        PlayerPrefs.DeleteKey("PuzzleCompleted");
+        PlayerPrefs.DeleteKey("PuzzleCompleted"); // для теста
+
         audioSource = GetComponent<AudioSource>();
         if (audioSource == null) audioSource = gameObject.AddComponent<AudioSource>();
 
+        // Инициализация массивов
         spotOccupants = new GameObject[targetSpots.Length];
         objectSpotIndex = new int[draggableObjects.Length];
         for (int i = 0; i < objectSpotIndex.Length; i++) objectSpotIndex[i] = -1;
+
+        // Задаём каждому блоку его целевой столбец и строку
+        // Первые 3 блока: столбец 0, строки 0,1,2
+        // Следующие 3: столбец 1, строки 0,1,2
+        // Последние 3: столбец 2, строки 0,1,2
+        for (int i = 0; i < draggableObjects.Length; i++)
+        {
+            int col = i / 3;   // 0,0,0,1,1,1,2,2,2
+            int row = i % 3;   // 0,1,2,0,1,2,0,1,2
+            blockTargetColumn[i] = col;
+            blockTargetRow[i] = row;
+        }
 
         if (PlayerPrefs.GetInt("PuzzleCompleted", 0) == 1)
         {
@@ -76,7 +93,7 @@ public class ComprasionInteractions : MonoBehaviour
 
     void GenerateRandomConfiguration()
     {
-        // Случайные цвета для столбцов
+        // 1. Случайный порядок цветов для столбцов
         List<Color> shuffledColors = new List<Color>(colorOptions);
         for (int i = 0; i < shuffledColors.Count; i++)
         {
@@ -88,22 +105,19 @@ public class ComprasionInteractions : MonoBehaviour
         for (int i = 0; i < 3; i++)
             columnColors[i] = shuffledColors[i];
 
-        // Перекрашиваем блоки (первые 3 блока → столбец 0, следующие 3 → столбец 1, последние 3 → столбец 2)
-        for (int col = 0; col < 3; col++)
+        // 2. Перекрашиваем блоки в цвет их целевого столбца (используя текущие columnColors)
+        for (int i = 0; i < draggableObjects.Length; i++)
         {
-            for (int i = 0; i < 3; i++)
+            if (draggableObjects[i] == null) continue;
+            Renderer rend = draggableObjects[i].GetComponent<Renderer>();
+            if (rend != null)
             {
-                int blockIndex = col * 3 + i;
-                if (blockIndex < draggableObjects.Length && draggableObjects[blockIndex] != null)
-                {
-                    Renderer rend = draggableObjects[blockIndex].GetComponent<Renderer>();
-                    if (rend != null)
-                        rend.material.color = columnColors[col];
-                }
+                int targetCol = blockTargetColumn[i];
+                rend.material.color = columnColors[targetCol];
             }
         }
 
-        // Случайное размещение блоков по всем точкам
+        // 3. Случайное размещение блоков по всем точкам
         List<int> freeSpots = new List<int>();
         for (int i = 0; i < targetSpots.Length; i++) freeSpots.Add(i);
 
@@ -132,14 +146,14 @@ public class ComprasionInteractions : MonoBehaviour
             int spotIdx = objectSpotIndex[i];
             if (spotIdx != -1)
             {
-                Color blockColor = draggableObjects[i].GetComponent<Renderer>().material.color;
-                int column = spotToColumn[spotIdx];
-                Color requiredColor = columnColors[column];
-                if (IsColorMatch(blockColor, requiredColor))
+                int spotCol = spotToColumn[spotIdx];
+                int spotRow = spotToRow[spotIdx];
+                if (spotCol == blockTargetColumn[i] && spotRow == blockTargetRow[i])
                     correctCount++;
             }
         }
     }
+
 
     bool IsColorMatch(Color a, Color b)
     {
