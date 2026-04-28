@@ -24,6 +24,7 @@ public class MicrophoneInteraction : MonoBehaviour
     private bool isCompleted = false;
     private Renderer objectRenderer;
     private GameObject player;
+    private bool isOpened = false;
 
     void Start()
     {
@@ -40,7 +41,7 @@ public class MicrophoneInteraction : MonoBehaviour
 
     void Update()
     {
-        if (!isCompleted && isPlayerNear && Input.GetKeyDown(KeyCode.E))
+        if (!isCompleted && !isOpened && isPlayerNear && Input.GetKeyDown(KeyCode.E))
         {
             OpenTextInput();
         }
@@ -84,6 +85,7 @@ public class MicrophoneInteraction : MonoBehaviour
         errorMessageText.gameObject.SetActive(false);
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
+        isOpened = true;
 
         // Отключаем движение игрока
         if (player != null)
@@ -191,10 +193,4 @@ public class MicrophoneInteraction : MonoBehaviour
     {
         successText.gameObject.SetActive(false);
     }
-}
-
-// Интерфейс для интерактивных объектов
-public interface IInteractable
-{
-    void Interact();
 }

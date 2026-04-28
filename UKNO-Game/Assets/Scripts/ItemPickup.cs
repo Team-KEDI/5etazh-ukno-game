@@ -14,8 +14,6 @@ public class ItemPickup : MonoBehaviour
     [Header("Настройки предмета")]
     public GameObject itemPrefab; // Сюда перетащите префаб куба
 
-    [Header("UI")]
-    public Text counterText;
 
     [Header("Отладка")]
     public bool showDebugRay = true;
@@ -30,8 +28,6 @@ public class ItemPickup : MonoBehaviour
         {
             playerCamera = GetComponentInChildren<Camera>();
         }
-
-        UpdateCounterUI();
     }
 
     void Update()
@@ -110,8 +106,6 @@ public class ItemPickup : MonoBehaviour
             Destroy(currentTargetItem);
             currentTargetItem = null;
 
-            // Обновляем UI
-            UpdateCounterUI();
         }
     }
 
@@ -147,9 +141,6 @@ public class ItemPickup : MonoBehaviour
             }
             // Небольшой случайный импульс для красоты
             rb.AddForce(playerCamera.transform.forward * 2f + Vector3.up * 1f, ForceMode.Impulse);
-
-            // Обновляем UI
-            UpdateCounterUI();
         }
     }
 
@@ -169,11 +160,4 @@ public class ItemPickup : MonoBehaviour
         }
     }
 
-    void UpdateCounterUI()
-    {
-        if (counterText != null)
-        {
-            counterText.text = $"Предметов: {itemsCollected}\n(E - подобрать/достать)";
-        }
-    }
 }
