@@ -7,6 +7,7 @@ public class MiniGameOpener : MonoBehaviour
     private bool isPlayerNear = false;
     private GameObject player;
     private PlayerMovement playerMovement;
+    private bool isOpened = false;
 
     void Start()
     {
@@ -16,7 +17,7 @@ public class MiniGameOpener : MonoBehaviour
 
     void Update()
     {
-        if (isPlayerNear && Input.GetKeyDown(KeyCode.E))
+        if (isPlayerNear && Input.GetKeyDown(KeyCode.E) && !isOpened)
         {
             OpenMiniGame();
         }
@@ -46,6 +47,8 @@ public class MiniGameOpener : MonoBehaviour
     {
         if (miniGamePanel == null) return;
 
+        isOpened = true;
+
         // Открываем панель
         miniGamePanel.SetActive(true);
 
@@ -61,6 +64,8 @@ public class MiniGameOpener : MonoBehaviour
     public void CloseMiniGame()
     {
         if (miniGamePanel == null) return;
+
+        isOpened = false;
 
         // Закрываем панель
         miniGamePanel.SetActive(false);
