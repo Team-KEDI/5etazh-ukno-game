@@ -155,13 +155,6 @@ public class ComprasionInteractions : MonoBehaviour
     }
 
 
-    bool IsColorMatch(Color a, Color b)
-    {
-        return Mathf.Abs(a.r - b.r) < 0.1f &&
-               Mathf.Abs(a.g - b.g) < 0.1f &&
-               Mathf.Abs(a.b - b.b) < 0.1f;
-    }
-
     void UpdateCounterUI()
     {
         if (counterText != null)
