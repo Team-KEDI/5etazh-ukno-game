@@ -146,8 +146,9 @@ public class CardSystem : MonoBehaviour
 
         if (playerRigidbody != null)
         {
-            playerRigidbody.isKinematic = true;
             playerRigidbody.velocity = Vector3.zero;
+            playerRigidbody.isKinematic = true;
+            
         }
 
         if (playerMovement != null)
