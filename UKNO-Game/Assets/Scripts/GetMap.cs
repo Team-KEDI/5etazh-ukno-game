@@ -85,6 +85,8 @@ public class GetMap : MonoBehaviour
         // Отключаем триггер, чтобы повторно не сработал
         GetComponent<Collider>().enabled = false;
 
-        Debug.Log("Старт активирован: проход открыт");
+        MapUnlocker mapUnlocker = FindObjectOfType<MapUnlocker>();
+        if (mapUnlocker != null)
+            mapUnlocker.UnlockMap();
     }
 }
