@@ -1,4 +1,4 @@
-using UnityEngine;
+п»їusing UnityEngine;
 using TMPro;
 using System.Collections;
 
@@ -27,7 +27,7 @@ public class FablabAssemblyTrigger : MonoBehaviour
         if (playerInTrigger && !isUIOpen && Input.GetKeyDown(interactKey))
         {
             if (pickup != null && pickup.IsQuestCompleted()) OpenAssembly();
-            else if (pickup != null) StartCoroutine(TempHint("Собери детали: " + pickup.GetCollectedCount() + "/5"));
+            else if (pickup != null) StartCoroutine(TempHint("РЎРѕР±СЂР°РЅРѕ: " + pickup.GetCollectedCount() + "/5"));
         }
     }
 
@@ -45,7 +45,7 @@ public class FablabAssemblyTrigger : MonoBehaviour
         Cursor.visible = true;
     }
 
-    public void CloseAssembly() // Привяжи к CloseButton в UI
+    public void CloseAssembly() // ГЏГ°ГЁГўГїГ¦ГЁ ГЄ CloseButton Гў UI
     {
         isUIOpen = false;
         Time.timeScale = 1f;
@@ -66,8 +66,8 @@ public class FablabAssemblyTrigger : MonoBehaviour
         }
     }
 
-    void OnTriggerEnter(Collider other) { if (other.CompareTag("Player")) { playerInTrigger = true; ShowHint(pickup.IsQuestCompleted() ? "Нажмите E для сборки" : "Собери детали"); } }
+    void OnTriggerEnter(Collider other) { if (other.CompareTag("Player")) { playerInTrigger = true; ShowHint(pickup.IsQuestCompleted() ? "РќР°Р¶РјРёС‚Рµ Р•, С‡С‚РѕР±С‹ СЃРѕР±СЂР°С‚СЊ СЃС…РµРјСѓ" : "РЎРЅР°С‡Р°Р»Р° СЃРѕР±РµСЂРёС‚Рµ РІСЃРµ С‡Р°СЃС‚Рё"); } }
     void OnTriggerExit(Collider other) { playerInTrigger = false; if (hintPanel) hintPanel.SetActive(false); }
     void ShowHint(string m) { if (hintPanel) hintPanel.SetActive(true); if (hintText) hintText.text = m; }
-    IEnumerator TempHint(string m) { ShowHint(m); yield return new WaitForSecondsRealtime(2f); if (playerInTrigger) ShowHint("Собери детали"); }
+    IEnumerator TempHint(string m) { ShowHint(m); yield return new WaitForSecondsRealtime(2f);}
 }
