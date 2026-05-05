@@ -18,7 +18,13 @@ public class MapManager : MonoBehaviour
 
     void Start()
     {
-        LoadProgress();
+        for(int i = 0; i<zones.Count; i++)
+        {
+            if (i == 7 | i == 3 | i == 4)
+            {
+                zones[i].zoneImage.material = zones[i].grayscaleMaterial;
+            }
+        }
     }
 
     // Вызывается из мини-игры при её завершении
@@ -28,41 +34,7 @@ public class MapManager : MonoBehaviour
         MapZone zone = zones[zoneIndex];
         
         // Меняем материал на цветной
-        if (zone.zoneImage != null && zone.normalMaterial != null)
+        if (zone.zoneImage != null)
             zone.zoneImage.material = zone.normalMaterial;
-        
-        // Сохраняем в PlayerPrefs
-        PlayerPrefs.SetInt(zone.saveKey, 1);
-        PlayerPrefs.Save();
-    }
-
-    void LoadProgress()
-    {
-        foreach (MapZone zone in zones)
-        {
-            bool isUnlocked = PlayerPrefs.GetInt(zone.saveKey, 0) == 1;
-            if (isUnlocked)
-            {
-                if (zone.zoneImage != null && zone.normalMaterial != null)
-                    zone.zoneImage.material = zone.normalMaterial;
-            }
-            else
-            {
-                if (zone.zoneImage != null && zone.grayscaleMaterial != null)
-                    zone.zoneImage.material = zone.grayscaleMaterial;
-            }
-        }
-    }
-
-    // Опционально: сброс прогресса (для тестов)
-    public void ResetAllZones()
-    {
-        foreach (MapZone zone in zones)
-        {
-            PlayerPrefs.DeleteKey(zone.saveKey);
-            if (zone.zoneImage != null && zone.grayscaleMaterial != null)
-                zone.zoneImage.material = zone.grayscaleMaterial;
-        }
-        PlayerPrefs.Save();
     }
 }

@@ -138,11 +138,12 @@ public class MicrophoneInteraction : MonoBehaviour
             audioSource.PlayOneShot(successSound);
         }
 
+        MapManager mapManager = FindObjectOfType<MapManager>();
+        if (mapManager != null)
+            mapManager.UnlockZone(4);
+
         // Показываем сообщение
         ShowCompletionMessage();
-
-        // Обновляем счетчик пазлов
-        UpdatePuzzleCounter();
 
         isCompleted = true;
     }
@@ -178,15 +179,6 @@ public class MicrophoneInteraction : MonoBehaviour
 
         Invoke("HideNotification", 3f);
         
-    }
-
-    void UpdatePuzzleCounter()
-    {
-        if (puzzleCounterText != null)
-        {
-            int completedQuests = PlayerPrefs.GetInt("PodcastQuestCompleted", 0);
-            puzzleCounterText.text = "Пазлы: " + completedQuests;
-        }
     }
 
     void HideNotification()

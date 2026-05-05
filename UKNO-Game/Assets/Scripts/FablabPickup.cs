@@ -4,7 +4,7 @@ using TMPro;
 public class FablabPickup : MonoBehaviour
 {
     [Header("Íàñòðîéêè ïîäáîðà")]
-    public float pickupRange = 3f; // Íåìíîãî óâåëè÷èë äëÿ óäîáñòâà
+    public float pickupRange = 3f;
     public KeyCode actionKey = KeyCode.E;
     public int itemsCollected = 0;
     public int itemsRequired = 5;
@@ -56,20 +56,18 @@ public class FablabPickup : MonoBehaviour
     void HighlightItem(GameObject item, bool highlight)
     {
         Renderer r = item.GetComponent<Renderer>();
-        if (r) r.material.color = highlight ? Color.yellow : originalItemColor;
+        if (r) r.material.color = highlight ? GameColors.Primary : originalItemColor;
     }
 
     void PickupItem()
     {
         itemsCollected++;
 
-        // Àêòèâèðóåì ñòåíó ïðè ïåðâîé äåòàëè
         if (itemsCollected == 1 && exitBlocker != null) exitBlocker.SetActive(true);
 
         if (counterPanel) counterPanel.SetActive(true);
         if (counterText) counterText.text = "Собрано деталей: " + itemsCollected + "/5";
 
-        // ÏÅÐÅÌÅÙÀÅÌ ÎÁÚÅÊÒ ÍÀ ÑÒÎË
         PrepareItemForTable(currentTargetItem);
 
         currentTargetItem = null;
@@ -83,23 +81,18 @@ public class FablabPickup : MonoBehaviour
 
     void PrepareItemForTable(GameObject item)
     {
-        // 1. Óáèðàåì ïîäñâåòêó (æåëòûé öâåò) ïåðåä ïåðåìåùåíèåì
         Renderer r = item.GetComponent<Renderer>();
         if (r) r.material.color = originalItemColor;
 
-        // 2. Ïåðåìåùàåì íà ñòîë â ðÿä
         item.transform.position = assemblyTablePoint.position + new Vector3(itemsCollected * 0.4f - 0.8f, 0.1f, 0.4f);
         item.transform.rotation = Quaternion.identity;
 
-        // 3. Ìåíÿåì òåã, ÷òîáû åãî áîëüøå íåëüçÿ áûëî «ïîäîáðàòü» ÷åðåç Raycast èãðîêà
         item.tag = "Untagged";
 
-        // 4. Äîáàâëÿåì ñêðèïò êëèêà äëÿ ñáîðêè è èíèöèàëèçèðóåì ID
         var clickable = item.GetComponent<ClickableDetailForSlots>();
         if (clickable == null) clickable = item.AddComponent<ClickableDetailForSlots>();
 
         var manager = Object.FindAnyObjectByType<AssemblySlotsManager>();
-        // ID äåòàëè áóäåò ðàâåí ïîðÿäêó ñáîðà (1, 2, 3, 4, 5)
         clickable.Initialize(itemsCollected);
     }
 

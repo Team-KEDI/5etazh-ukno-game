@@ -19,9 +19,9 @@ public class ComprasionInteractions : MonoBehaviour
     public Color[] colorOptions = new Color[] { Color.red, Color.green, Color.blue };
 
     [Header("UI")]
-    public TextMeshProUGUI instructionText;
     public TextMeshProUGUI counterText;
     public TextMeshProUGUI successText;
+    public GameObject hint;
 
     [Header("Звуки")]
     public AudioClip swapSound;
@@ -35,13 +35,13 @@ public class ComprasionInteractions : MonoBehaviour
 
     // Состояние блоков
     private GameObject[] spotOccupants;
-    private int[] objectSpotIndex;           // для каждого блока – индекс точки (-1 если не на точке)
+    private int[] objectSpotIndex;
     private int correctCount;
 
-    // Цвета столбцов (генерируются случайно)
+    // Цвета столбцов
     private Color[] columnColors = new Color[3];
 
-    // Целевые параметры блоков (не меняются в игре)
+    // Целевые параметры блоков
     private int[] blockTargetColumn = new int[9];
     private int[] blockTargetRow = new int[9];
 
@@ -55,7 +55,10 @@ public class ComprasionInteractions : MonoBehaviour
 
     void Start()
     {
-        PlayerPrefs.DeleteKey("PuzzleCompleted"); // для теста
+        PlayerPrefs.DeleteKey("PuzzleCompleted");
+        // Скрываем UI при старте
+        hint.SetActive(false);
+        counterText.gameObject.SetActive(false);
 
         audioSource = GetComponent<AudioSource>();
         if (audioSource == null) audioSource = gameObject.AddComponent<AudioSource>();
@@ -66,13 +69,10 @@ public class ComprasionInteractions : MonoBehaviour
         for (int i = 0; i < objectSpotIndex.Length; i++) objectSpotIndex[i] = -1;
 
         // Задаём каждому блоку его целевой столбец и строку
-        // Первые 3 блока: столбец 0, строки 0,1,2
-        // Следующие 3: столбец 1, строки 0,1,2
-        // Последние 3: столбец 2, строки 0,1,2
         for (int i = 0; i < draggableObjects.Length; i++)
         {
-            int col = i / 3;   // 0,0,0,1,1,1,2,2,2
-            int row = i % 3;   // 0,1,2,0,1,2,0,1,2
+            int col = i / 3;
+            int row = i % 3;
             blockTargetColumn[i] = col;
             blockTargetRow[i] = row;
         }
@@ -88,7 +88,8 @@ public class ComprasionInteractions : MonoBehaviour
         }
 
         if (successText != null) successText.gameObject.SetActive(false);
-        if (instructionText != null) instructionText.text = "";
+        
+        Debug.Log("ComprasionInteractions Start - готов к работе");
     }
 
     void GenerateRandomConfiguration()
@@ -105,7 +106,7 @@ public class ComprasionInteractions : MonoBehaviour
         for (int i = 0; i < 3; i++)
             columnColors[i] = shuffledColors[i];
 
-        // 2. Перекрашиваем блоки в цвет их целевого столбца (используя текущие columnColors)
+        // 2. Перекрашиваем блоки
         for (int i = 0; i < draggableObjects.Length; i++)
         {
             if (draggableObjects[i] == null) continue;
@@ -117,7 +118,7 @@ public class ComprasionInteractions : MonoBehaviour
             }
         }
 
-        // 3. Случайное размещение блоков по всем точкам
+        // 3. Случайное размещение блоков
         List<int> freeSpots = new List<int>();
         for (int i = 0; i < targetSpots.Length; i++) freeSpots.Add(i);
 
@@ -154,7 +155,6 @@ public class ComprasionInteractions : MonoBehaviour
         }
     }
 
-
     void UpdateCounterUI()
     {
         if (counterText != null)
@@ -163,8 +163,12 @@ public class ComprasionInteractions : MonoBehaviour
 
     void Update()
     {
+        
         if (!isCompleted && isPlayerNear && Input.GetKeyDown(KeyCode.E) && !isPuzzleActive)
+        {
+            Debug.Log("ActivatePuzzle вызывается!");
             ActivatePuzzle();
+        }
 
         if (isPuzzleActive && !isCompleted)
             HandleSelectionAndSwap();
@@ -172,12 +176,21 @@ public class ComprasionInteractions : MonoBehaviour
 
     void OnTriggerEnter(Collider other)
     {
+        Debug.Log($"OnTriggerEnter с объектом: {other.name}, тег: {other.tag}");
+        
         if (other.CompareTag("Player") && !isCompleted)
         {
             isPlayerNear = true;
             player = other.gameObject;
-            if (instructionText != null)
-                instructionText.text = "Нажмите E, чтобы начать пазл";
+            if (hint != null)
+            {
+                hint.SetActive(true);
+                Debug.Log("Подсказка включена");
+            }
+            else
+            {
+                Debug.LogError("hint не назначен в инспекторе!");
+            }
         }
     }
 
@@ -187,13 +200,18 @@ public class ComprasionInteractions : MonoBehaviour
         {
             isPlayerNear = false;
             player = null;
-            if (instructionText != null)
-                instructionText.text = "";
+            if (hint != null)
+                hint.SetActive(false);
         }
     }
 
     void ActivatePuzzle()
     {
+        if (hint != null)
+            hint.SetActive(false);
+        
+        counterText.gameObject.SetActive(true);
+        
         isPuzzleActive = true;
 
         if (player != null)
@@ -201,6 +219,7 @@ public class ComprasionInteractions : MonoBehaviour
             PlayerMovement movement = player.GetComponent<PlayerMovement>();
             if (movement != null) movement.canMove = false;
         }
+        
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
 
@@ -225,14 +244,16 @@ public class ComprasionInteractions : MonoBehaviour
                 if (col != null) col.enabled = true;
             }
         }
-
-        if (instructionText != null)
-            instructionText.text = $"Кликните на блок, затем на другой, чтобы поменять их местами. (Правильно: {correctCount}/{draggableObjects.Length})";
+        
+        UpdateCounterUI();
+        Debug.Log("Пазл активирован!");
     }
 
     void DeactivatePuzzle(bool completed)
     {
         isPuzzleActive = false;
+        
+        counterText.gameObject.SetActive(false);
 
         // Возвращаем камеру
         playerCamera.transform.position = originalCameraPos;
@@ -243,6 +264,7 @@ public class ComprasionInteractions : MonoBehaviour
             PlayerMovement movement = player.GetComponent<PlayerMovement>();
             if (movement != null) movement.canMove = true;
         }
+        
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
 
@@ -261,58 +283,55 @@ public class ComprasionInteractions : MonoBehaviour
             }
         }
 
-        // Сбрасываем подсветку, если была
         ClearSelectedHighlight();
-
-        if (instructionText != null) instructionText.text = "";
+        Debug.Log("Пазл деактивирован");
     }
 
-void HandleSelectionAndSwap()
-{
-    if (Input.GetMouseButtonDown(0))
+    void HandleSelectionAndSwap()
     {
-        Ray ray = playerCamera.ScreenPointToRay(Input.mousePosition);
-        if (Physics.Raycast(ray, out RaycastHit hit))
+        if (Input.GetMouseButtonDown(0))
         {
-            GameObject hitObj = hit.collider.gameObject;
-            int hitIndex = System.Array.IndexOf(draggableObjects, hitObj);
-
-            if (hitIndex != -1)
+            Ray ray = playerCamera.ScreenPointToRay(Input.mousePosition);
+            if (Physics.Raycast(ray, out RaycastHit hit))
             {
-                if (selectedBlockIndex == -1)
+                GameObject hitObj = hit.collider.gameObject;
+                int hitIndex = System.Array.IndexOf(draggableObjects, hitObj);
+
+                if (hitIndex != -1)
                 {
-                    selectedBlockIndex = hitIndex;
-                    HighlightBlock(selectedBlockIndex, true);
-                    if (instructionText != null)
-                        instructionText.text = "Выберите второй блок для обмена.";
-                }
-                else if (selectedBlockIndex == hitIndex)
-                {
-                    ClearSelectedHighlight(true); // плавный возврат
-                    if (instructionText != null)
-                        instructionText.text = $"Выбор сброшен. (Правильно: {correctCount}/{draggableObjects.Length})";
-                }
-                else
-                {
-                    // Сохраняем индексы до сброса выделения
-                    int firstIndex = selectedBlockIndex;
-                    int secondIndex = hitIndex;
-                    
-                    ClearSelectedHighlight(false); // сброс без анимации
-                    SwapBlocks(firstIndex, secondIndex);
-                    
-                    UpdateCorrectCount();
-                    UpdateCounterUI();
-                    
-                    if (correctCount == draggableObjects.Length)
+                    if (selectedBlockIndex == -1)
                     {
-                        if (instructionText != null) instructionText.text = "Отлично! Пазл завершён!";
-                        DeactivatePuzzle(true);
+                        selectedBlockIndex = hitIndex;
+                        HighlightBlock(selectedBlockIndex, true);
+                    }
+                    else if (selectedBlockIndex == hitIndex)
+                    {
+                        ClearSelectedHighlight(true);
+                        UpdateCounterUI();
                     }
                     else
                     {
-                        if (instructionText != null)
-                            instructionText.text = $"Обмен выполнен. Правильно: {correctCount}/{draggableObjects.Length}";
+                        int firstIndex = selectedBlockIndex;
+                        int secondIndex = hitIndex;
+                        
+                        ClearSelectedHighlight(false);
+                        SwapBlocks(firstIndex, secondIndex);
+                        
+                        UpdateCorrectCount();
+                        UpdateCounterUI();
+                        
+                        if (correctCount == draggableObjects.Length)
+                        {
+                            DeactivatePuzzle(true);
+                        }
+                    }
+                }
+                else
+                {
+                    if (selectedBlockIndex != -1)
+                    {
+                        ClearSelectedHighlight(true);
+                        UpdateCounterUI();
                     }
                 }
             }
@@ -321,22 +340,11 @@ void HandleSelectionAndSwap()
                 if (selectedBlockIndex != -1)
                 {
                     ClearSelectedHighlight(true);
-                    if (instructionText != null)
-                        instructionText.text = $"Выбор сброшен. (Правильно: {correctCount}/{draggableObjects.Length})";
+                    UpdateCounterUI();
                 }
             }
         }
-        else
-        {
-            if (selectedBlockIndex != -1)
-            {
-                ClearSelectedHighlight(true);
-                if (instructionText != null)
-                    instructionText.text = $"Выбор сброшен. (Правильно: {correctCount}/{draggableObjects.Length})";
-            }
-        }
     }
-}
 
     void SwapBlocks(int indexA, int indexB)
     {
@@ -348,7 +356,6 @@ void HandleSelectionAndSwap()
 
         if (spotA == -1 || spotB == -1) return;
 
-        // Меняем позиции в мире
         Vector3 posA = blockA.transform.position;
         Quaternion rotA = blockA.transform.rotation;
         blockA.transform.position = blockB.transform.position;
@@ -356,72 +363,71 @@ void HandleSelectionAndSwap()
         blockB.transform.position = posA;
         blockB.transform.rotation = rotA;
 
-        // Обновляем массивы занятости точек
         spotOccupants[spotA] = blockB;
         spotOccupants[spotB] = blockA;
 
-        // Обновляем индексы точек для блоков
         objectSpotIndex[indexA] = spotB;
         objectSpotIndex[indexB] = spotA;
 
         if (swapSound != null) audioSource.PlayOneShot(swapSound);
     }
 
-void HighlightBlock(int index, bool highlight, bool animateReturn = true)
-{
-    if (index < 0 || index >= draggableObjects.Length) return;
-    GameObject block = draggableObjects[index];
-    if (block == null) return;
-
-    if (currentMoveCoroutine != null)
-        StopCoroutine(currentMoveCoroutine);
-
-    if (highlight)
+    void HighlightBlock(int index, bool highlight, bool animateReturn = true)
     {
-        selectedBlockOriginalPosition = block.transform.position;
-        Vector3 targetPos = selectedBlockOriginalPosition + Vector3.right * 0.2f; // смещение на камеру
-        currentMoveCoroutine = StartCoroutine(MoveBlockSmooth(block, selectedBlockOriginalPosition, targetPos));
-    }
-    else
-    {
-        if (animateReturn)
+        if (index < 0 || index >= draggableObjects.Length) return;
+        GameObject block = draggableObjects[index];
+        if (block == null) return;
+
+        if (currentMoveCoroutine != null)
+            StopCoroutine(currentMoveCoroutine);
+
+        if (highlight)
         {
-            currentMoveCoroutine = StartCoroutine(MoveBlockSmooth(block, block.transform.position, selectedBlockOriginalPosition));
+            selectedBlockOriginalPosition = block.transform.position;
+            Vector3 targetPos = selectedBlockOriginalPosition + Vector3.right * 0.2f;
+            currentMoveCoroutine = StartCoroutine(MoveBlockSmooth(block, selectedBlockOriginalPosition, targetPos));
         }
         else
         {
-            block.transform.position = selectedBlockOriginalPosition;
-            currentMoveCoroutine = null;
+            if (animateReturn)
+            {
+                currentMoveCoroutine = StartCoroutine(MoveBlockSmooth(block, block.transform.position, selectedBlockOriginalPosition));
+            }
+            else
+            {
+                block.transform.position = selectedBlockOriginalPosition;
+                currentMoveCoroutine = null;
+            }
         }
     }
-}
 
-void ClearSelectedHighlight(bool animate = true)
-{
-    if (selectedBlockIndex != -1)
+    void ClearSelectedHighlight(bool animate = true)
     {
-        HighlightBlock(selectedBlockIndex, false, animate);
-        selectedBlockIndex = -1;
+        if (selectedBlockIndex != -1)
+        {
+            HighlightBlock(selectedBlockIndex, false, animate);
+            selectedBlockIndex = -1;
+        }
     }
-}
 
-System.Collections.IEnumerator MoveBlockSmooth(GameObject block, Vector3 from, Vector3 to)
-{
-    float duration = 0.2f;
-    float elapsed = 0f;
-    while (elapsed < duration)
+    System.Collections.IEnumerator MoveBlockSmooth(GameObject block, Vector3 from, Vector3 to)
     {
-        elapsed += Time.deltaTime;
-        float t = elapsed / duration;
-        block.transform.position = Vector3.Lerp(from, to, t);
-        yield return null;
+        float duration = 0.2f;
+        float elapsed = 0f;
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float t = elapsed / duration;
+            block.transform.position = Vector3.Lerp(from, to, t);
+            yield return null;
+        }
+        block.transform.position = to;
+        currentMoveCoroutine = null;
     }
-    block.transform.position = to;
-    currentMoveCoroutine = null;
-}
 
     void HideSuccessMessage()
     {
-        if (successText != null) successText.gameObject.SetActive(false);
+        if (successText != null) 
+            successText.gameObject.SetActive(false);
     }
 }

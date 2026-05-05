@@ -133,6 +133,8 @@ public class CardSystem : MonoBehaviour
 
     void StartViewingWall()
     {
+
+        CheckAllCards();
         isViewingWall = true;
 
         if (player != null)

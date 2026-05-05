@@ -55,10 +55,6 @@ public class PuzzleBoard : MonoBehaviour
         isCompleted = true;
         Debug.Log("Схема собрана!");
 
-        // Сохраняем прогресс
-        PlayerPrefs.SetInt("PuzzleCompleted", 1);
-        PlayerPrefs.Save();
-
         // Показываем сообщение
         if (completionMessage != null)
             completionMessage.SetActive(true);

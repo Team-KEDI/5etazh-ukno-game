@@ -45,7 +45,7 @@ public class FablabAssemblyTrigger : MonoBehaviour
         Cursor.visible = true;
     }
 
-    public void CloseAssembly() // Ïðèâÿæè ê CloseButton â UI
+    public void CloseAssembly()
     {
         isUIOpen = false;
         Time.timeScale = 1f;

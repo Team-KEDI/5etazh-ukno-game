@@ -8,8 +8,7 @@ public class GetMap : MonoBehaviour
     public GameObject[] wallsToDisable;   // невидимые стены или другие препятствия
 
     [Header("UI")]
-    public TextMeshProUGUI hintText;      // текстовое поле для подсказки (можно в инспекторе)
-    public string hintMessage = "Нажмите E, чтобы начать";
+    public GameObject hint;
 
     [Header("Звук")]
     public AudioClip startSound;
@@ -24,9 +23,7 @@ public class GetMap : MonoBehaviour
         if (audioSource == null && startSound != null)
             audioSource = gameObject.AddComponent<AudioSource>();
 
-        // Скрываем подсказку при старте, если она привязана
-        if (hintText != null)
-            hintText.text = "";
+        hint.SetActive(false);
     }
 
     void OnTriggerEnter(Collider other)
@@ -34,10 +31,7 @@ public class GetMap : MonoBehaviour
         if (other.CompareTag("Player") && !activated)
         {
             playerInRange = true;
-            if (hintText != null)
-                hintText.text = hintMessage;
-            else
-                Debug.Log(hintMessage);
+            hint.SetActive(true);
         }
     }
 
@@ -46,8 +40,7 @@ public class GetMap : MonoBehaviour
         if (other.CompareTag("Player"))
         {
             playerInRange = false;
-            if (hintText != null)
-                hintText.text = "";
+            hint.SetActive(false);
         }
     }
 
@@ -79,8 +72,7 @@ public class GetMap : MonoBehaviour
             audioSource.PlayOneShot(startSound);
 
         // Убираем подсказку
-        if (hintText != null)
-            hintText.text = "";
+        hint.SetActive(false);
 
         // Отключаем триггер, чтобы повторно не сработал
         GetComponent<Collider>().enabled = false;

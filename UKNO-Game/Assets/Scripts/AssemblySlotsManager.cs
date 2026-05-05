@@ -4,21 +4,21 @@ using System.Collections;
 
 public class AssemblySlotsManager : MonoBehaviour
 {
-    [Header("Íàñòðîéêè ëó÷à (Raycast)")]
+    [Header("Настройки луча (Raycast)")]
     public float rayDistance = 50f;
     public LayerMask clickLayer = -1;
 
-    [Header("UI Ññûëêè")]
+    [Header("UI Ссылки")]
     public GameObject assemblyUIPanel;
     public TMP_Text statusText;
     public GameObject hintPanel;
     public TMP_Text hintText;
 
-    [Header("Ôèíàëüíûé UI")]
-    public GameObject successTextObject; // Ñþäà ïåðåòàùè çåëåíûé òåêñò "Çàäàíèå âûïîëíåíî"
-    public AudioSource successAudio;     // Ñþäà ïåðåòàùè êîìïîíåíò AudioSource ñî çâóêîì
+    [Header("Финальный UI")]
+    public TextMeshProUGUI successTextObject;
+    public AudioSource successAudio;
 
-    [Header("Ëîãèêà")]
+    [Header("Логика")]
     public GameObject exitBlocker;
     public float moveSpeed = 10f;
     public int totalNeeded = 5;
@@ -32,7 +32,7 @@ public class AssemblySlotsManager : MonoBehaviour
     void Start()
     {
         mainCam = Camera.main;
-        if (successTextObject) successTextObject.SetActive(false); // Ãàðàíòèðóåì, ÷òî òåêñò ñêðûò
+        if (successTextObject) successTextObject.gameObject.SetActive(false);
     }
 
     void Update()
@@ -133,22 +133,23 @@ public class AssemblySlotsManager : MonoBehaviour
     {
         if (exitBlocker) exitBlocker.SetActive(false);
 
-        // Âêëþ÷àåì çåëåíûé òåêñò
-        if (successTextObject) {
-            successTextObject.SetActive(true);
-            Invoke("TextCloser", 3f);
-        }
-        
+        MapManager mapManager = FindObjectOfType<MapManager>();
+        if (mapManager != null)
+            mapManager.UnlockZone(7);
 
-        // Âîñïðîèçâîäèì çâóê
+        ShowCompletionMessage();
+        
         if (successAudio) successAudio.Play();
 
         ShowHint("задание выполнено!");
     }
-
-    private void TextCloser() 
+    void ShowCompletionMessage()
     {
-        successTextObject.SetActive(false);
+        successTextObject.text = "Задание выполнено: Фаблаб!\nПолучен фрагмент пазла!";
+        successTextObject.gameObject.SetActive(true);
+
+        Invoke("HideNotification", 3f);
+        
     }
 
     public void ShowHint(string msg)

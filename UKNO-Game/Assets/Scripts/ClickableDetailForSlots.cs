@@ -6,12 +6,10 @@ public class ClickableDetailForSlots : MonoBehaviour
     private Vector3 originalScale;
     private bool isSelected = false;
 
-    // Настройка детали при появлении на столе
     public void Initialize(int id)
     {
         detailID = id;
         originalScale = transform.localScale;
-        // Добавляем коллайдер, если его вдруг нет (для клика)
         if (GetComponent<Collider>() == null) gameObject.AddComponent<BoxCollider>();
     }
 
@@ -20,7 +18,6 @@ public class ClickableDetailForSlots : MonoBehaviour
         if (isSelected == state) return;
         isSelected = state;
 
-        // Эффект выбора: увеличиваем и приподнимаем
         if (isSelected)
         {
             transform.localScale = originalScale * 1.2f;

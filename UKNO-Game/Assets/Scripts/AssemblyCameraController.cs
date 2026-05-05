@@ -2,9 +2,8 @@ using UnityEngine;
 
 public class AssemblyCameraController : MonoBehaviour
 {
-    [Header("Настройки позиции")]
+    [Header("пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅ")]
     public Transform assemblyTable;
-    // X=0 (центр), Y=1.8 (высота над столом), Z=0 (центр)
     public Vector3 offsetFromTable = new Vector3(0f, 1.8f, 0f);
     public float moveDuration = 0.6f;
 
@@ -23,7 +22,6 @@ public class AssemblyCameraController : MonoBehaviour
     {
         if (isMoving) return;
 
-        // Сохраняем позицию игрока/камеры перед перелетом
         if (!hasSavedPlayerPosition)
         {
             playerOriginalPosition = transform.position;
@@ -34,10 +32,8 @@ public class AssemblyCameraController : MonoBehaviour
         startPos = transform.position;
         startRot = transform.rotation;
 
-        // Целевая точка: строго над объектом стола на заданной высоте
         targetPos = assemblyTable.position + offsetFromTable;
 
-        // Поворот: 90 градусов по X (взгляд вниз), 0 по Y и Z
         targetRot = Quaternion.Euler(90f, 0f, 0f);
 
         progress = 0f;
@@ -63,7 +59,6 @@ public class AssemblyCameraController : MonoBehaviour
     {
         if (!isMoving) return;
 
-        // Используем unscaledDeltaTime, так как во время сборки Time.timeScale может быть 0
         progress += Time.unscaledDeltaTime / moveDuration;
         float t = Mathf.SmoothStep(0f, 1f, progress);
 
