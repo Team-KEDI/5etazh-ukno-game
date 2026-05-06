@@ -145,7 +145,7 @@ public class AssemblySlotsManager : MonoBehaviour
     }
     void ShowCompletionMessage()
     {
-        successTextObject.text = "Задание выполнено: Фаблаб!\nПолучен фрагмент пазла!";
+        successTextObject.text = "Задание выполнено: фаблаб!\nПолучен фрагмент пазла!";
         successTextObject.gameObject.SetActive(true);
 
         Invoke("HideNotification", 3f);
@@ -156,6 +156,11 @@ public class AssemblySlotsManager : MonoBehaviour
     {
         if (hintCoroutine != null) StopCoroutine(hintCoroutine);
         hintCoroutine = StartCoroutine(HintTimer(msg));
+    }
+
+    void HideNotification()
+    {
+        successTextObject.gameObject.SetActive(false);
     }
 
     IEnumerator HintTimer(string msg)
