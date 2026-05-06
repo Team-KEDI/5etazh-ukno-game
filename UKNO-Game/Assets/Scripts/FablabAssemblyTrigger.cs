@@ -27,7 +27,7 @@ public class FablabAssemblyTrigger : MonoBehaviour
         if (playerInTrigger && !isUIOpen && Input.GetKeyDown(interactKey))
         {
             if (pickup != null && pickup.IsQuestCompleted()) OpenAssembly();
-            else if (pickup != null) StartCoroutine(TempHint("Собрано: " + pickup.GetCollectedCount() + "/5"));
+            else if (pickup != null) StartCoroutine(TempHint());
         }
     }
 
@@ -66,8 +66,8 @@ public class FablabAssemblyTrigger : MonoBehaviour
         }
     }
 
-    void OnTriggerEnter(Collider other) { if (other.CompareTag("Player")) { playerInTrigger = true; ShowHint(pickup.IsQuestCompleted() ? "Нажмите Е, чтобы собрать схему" : "Сначала соберите все части"); } }
+    void OnTriggerEnter(Collider other) { if (other.CompareTag("Player")) { playerInTrigger = true; ShowHint(); } }
     void OnTriggerExit(Collider other) { playerInTrigger = false; if (hintPanel) hintPanel.SetActive(false); }
-    void ShowHint(string m) { if (hintPanel) hintPanel.SetActive(true); if (hintText) hintText.text = m; }
-    IEnumerator TempHint(string m) { ShowHint(m); yield return new WaitForSecondsRealtime(2f);}
+    void ShowHint() { if (hintPanel) hintPanel.SetActive(true); }
+    IEnumerator TempHint() { ShowHint(); yield return new WaitForSecondsRealtime(2f);}
 }

@@ -277,7 +277,7 @@ public class ComprasionInteractions : MonoBehaviour
             if (completeSound != null) audioSource.PlayOneShot(completeSound);
             if (successText != null)
             {
-                successText.text = "Пазл решён! Получен фрагмент.";
+                successText.text = "Пазл решён! Получен номер телефона.";
                 successText.gameObject.SetActive(true);
                 Invoke(nameof(HideSuccessMessage), 3f);
             }

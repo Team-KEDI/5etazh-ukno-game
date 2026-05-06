@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
 using System.Collections.Generic;
+using TMPro;
 
 public class CardSystem : MonoBehaviour
 {
@@ -12,7 +13,7 @@ public class CardSystem : MonoBehaviour
     public Transform cameraViewPoint;
 
     [Header("UI")]
-    public GameObject winPanel;
+    public TextMeshProUGUI winPanel;
     public Text progressText;
 
     [Header("Настройки")]
@@ -63,7 +64,7 @@ public class CardSystem : MonoBehaviour
         if (interactionPrompt != null)
             interactionPrompt.SetActive(false);
         if (winPanel != null)
-            winPanel.SetActive(false);
+            winPanel.gameObject.SetActive(false);
 
         InitializeData();
     }
@@ -209,7 +210,7 @@ public class CardSystem : MonoBehaviour
         HidePlayerModel(false);
 
         if (winPanel != null)
-            winPanel.SetActive(false);
+            winPanel.gameObject.SetActive(false);
     }
 
     void ResetCardsToOriginalPositions()
@@ -379,8 +380,10 @@ public class CardSystem : MonoBehaviour
         Debug.Log("Победа! Все карточки на своих местах!");
 
         if (winPanel != null)
-            winPanel.SetActive(true);
-
+        {
+            winPanel.text = "Пазл решён! Получен номер телефона.";
+            winPanel.gameObject.SetActive(true);
+        }
         PlayerPrefs.SetInt("CardPuzzleCompleted", 1);
         PlayerPrefs.Save();
 
