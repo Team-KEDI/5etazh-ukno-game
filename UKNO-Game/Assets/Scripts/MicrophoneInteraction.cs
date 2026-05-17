@@ -20,6 +20,9 @@ public class MicrophoneInteraction : MonoBehaviour
     public AudioClip successSound;
     private AudioSource audioSource;
 
+    [SerializeField] private Camera _cam;
+    private CameraRotation _camScript;
+
     private bool isPlayerNear = false;
     private bool isCompleted = false;
     private Renderer objectRenderer;
@@ -28,6 +31,7 @@ public class MicrophoneInteraction : MonoBehaviour
 
     void Start()
     {
+        _camScript = _cam.GetComponent<CameraRotation>();
         objectRenderer = GetComponent<Renderer>();
         defaultMaterial = objectRenderer.material;
         audioSource = GetComponent<AudioSource>();
@@ -91,6 +95,7 @@ public class MicrophoneInteraction : MonoBehaviour
         if (player != null)
         {
             player.GetComponent<PlayerMovement>().canMove = false;
+            _camScript.enabled = false;
         }
     }
 
@@ -130,6 +135,7 @@ public class MicrophoneInteraction : MonoBehaviour
         if (player != null)
         {
             player.GetComponent<PlayerMovement>().canMove = true;
+            _camScript.enabled = true;
         }
 
         // Проигрываем звук успеха

@@ -189,6 +189,7 @@ public class PendantSystem : MonoBehaviour
 
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
+        interactionPrompt.SetActive(false);
 
         HidePlayerModel(true);
 
@@ -233,6 +234,8 @@ public class PendantSystem : MonoBehaviour
 
         if (completionMessage != null)
             completionMessage.SetActive(false);
+
+        interactionPrompt.SetActive(true);
     }
 
     void ShowRolePanel()
