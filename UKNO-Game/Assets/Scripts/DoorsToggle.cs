@@ -6,6 +6,10 @@ public class DoorsToggle : MonoBehaviour
     [Tooltip("Объект двери (должен иметь BoxCollider или MeshFilter для автоматического расчёта левого края)")]
     public Transform doorTransform;
 
+    [Header("Компонент Звука")]
+    [Tooltip("Перетащите сюда компонент Audio Source, висящий на объекте двери")]
+    public AudioSource audioSource;
+
     [Header("Настройки анимации")]
     public AnimationCurve openSpeedCurve = new AnimationCurve(
         new Keyframe(0, 1, 0, 0),
@@ -43,6 +47,12 @@ public class DoorsToggle : MonoBehaviour
             return;
         }
 
+        // Если AudioSource не перетащили вручную в инспекторе, скрипт попытается найти его на самом объекте триггера
+        if (audioSource == null)
+        {
+            audioSource = GetComponent<AudioSource>();
+        }
+
         Collider trigCol = GetComponent<Collider>();
         if (trigCol != null && !trigCol.isTrigger)
             trigCol.isTrigger = true;
@@ -70,6 +80,12 @@ public class DoorsToggle : MonoBehaviour
             if (reverseDirection && open) angle = -angle;
             targetAngle = angle;
             openTime = 0f;
+
+            // Воспроизведение звука при открытии или закрытии двери
+            if (audioSource != null)
+            {
+                audioSource.Play();
+            }
         }
 
         if (openTime < 1f)
@@ -118,6 +134,10 @@ public class DoorsToggle : MonoBehaviour
     {
         if (other.CompareTag("Player"))
             playerInTrigger = true;
+    }
+
+    private void BelmontTriggerExit(Collider other)
+    {
     }
 
     private void OnTriggerExit(Collider other)
