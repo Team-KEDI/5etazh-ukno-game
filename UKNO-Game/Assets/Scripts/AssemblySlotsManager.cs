@@ -32,7 +32,15 @@ public class AssemblySlotsManager : MonoBehaviour
     void Start()
     {
         mainCam = Camera.main;
-        if (successTextObject) successTextObject.gameObject.SetActive(false);
+        if (mainCam == null)
+        {
+            Debug.LogWarning($"[{name}] Camera.main не найдена! Убедитесь, что у камеры на сцене установлен тег 'MainCamera'.");
+        }
+
+        if (successTextObject != null)
+        {
+            successTextObject.gameObject.SetActive(false);
+        }
     }
 
     void Update()
@@ -43,21 +51,37 @@ public class AssemblySlotsManager : MonoBehaviour
 
     void ShootRay()
     {
+        // Проверка на случай, если камера была уничтожена, переключена или изначально не найдена
+        if (mainCam == null)
+        {
+            mainCam = Camera.main;
+            if (mainCam == null)
+            {
+                Debug.LogError($"[{name}] Невозможно выполнить ShootRay: главная камера отсутствует на сцене.");
+                return;
+            }
+        }
+
         Ray ray = mainCam.ScreenPointToRay(Input.mousePosition);
         RaycastHit hit;
 
         if (Physics.Raycast(ray, out hit, rayDistance, clickLayer))
         {
-            ClickableDetailForSlots detail = hit.collider.GetComponentInParent<ClickableDetailForSlots>();
-            DetailSlot slot = hit.collider.GetComponentInParent<DetailSlot>();
+            if (hit.collider != null)
+            {
+                ClickableDetailForSlots detail = hit.collider.GetComponentInParent<ClickableDetailForSlots>();
+                DetailSlot slot = hit.collider.GetComponentInParent<DetailSlot>();
 
-            if (detail != null) HandleDetailClick(detail);
-            else if (slot != null) HandleSlotClick(slot);
+                if (detail != null) HandleDetailClick(detail);
+                else if (slot != null) HandleSlotClick(slot);
+            }
         }
     }
 
     void HandleDetailClick(ClickableDetailForSlots detail)
     {
+        if (detail == null) return;
+
         if (selectedDetail != null && selectedDetail != detail.gameObject)
         {
             var oldScript = selectedDetail.GetComponent<ClickableDetailForSlots>();
@@ -82,12 +106,18 @@ public class AssemblySlotsManager : MonoBehaviour
 
     void HandleSlotClick(DetailSlot slot)
     {
+        if (slot == null) return;
         if (selectedDetail == null) { ShowHint("Выберите деталь"); return; }
         if (slot.isOccupied) { ShowHint("HandleSlotClick 2"); return; }
         if (selectedID != slot.slotID) { ShowHint("HandleSlotClick 3" + selectedID); return; }
 
         GameObject targetDetail = selectedDetail;
-        targetDetail.GetComponent<ClickableDetailForSlots>().SetSelected(false);
+
+        var detailScript = targetDetail.GetComponent<ClickableDetailForSlots>();
+        if (detailScript != null)
+        {
+            detailScript.SetSelected(false);
+        }
 
         selectedDetail = null;
         selectedID = -1;
@@ -97,24 +127,32 @@ public class AssemblySlotsManager : MonoBehaviour
 
     IEnumerator MoveRoutine(GameObject detail, DetailSlot slot)
     {
+        if (detail == null || slot == null) yield break;
+
         slot.isOccupied = true;
         Vector3 targetPos = slot.transform.position;
         Quaternion targetRot = slot.transform.rotation;
         slot.ClearSlot();
 
-        while (Vector3.Distance(detail.transform.position, targetPos) > 0.01f)
+        while (detail != null && Vector3.Distance(detail.transform.position, targetPos) > 0.01f)
         {
             detail.transform.position = Vector3.MoveTowards(detail.transform.position, targetPos, moveSpeed * Time.unscaledDeltaTime);
             detail.transform.rotation = Quaternion.Slerp(detail.transform.rotation, targetRot, moveSpeed * Time.unscaledDeltaTime);
             yield return null;
         }
 
-        detail.transform.position = targetPos;
-        detail.transform.rotation = targetRot;
-        detail.transform.parent = null;
+        if (detail != null)
+        {
+            detail.transform.position = targetPos;
+            detail.transform.rotation = targetRot;
+            detail.transform.parent = null;
 
-        Destroy(detail.GetComponent<ClickableDetailForSlots>());
-        if (detail.GetComponent<Collider>()) detail.GetComponent<Collider>().enabled = false;
+            var detailScript = detail.GetComponent<ClickableDetailForSlots>();
+            if (detailScript != null) Destroy(detailScript);
+
+            var col = detail.GetComponent<Collider>();
+            if (col != null) col.enabled = false;
+        }
 
         placedCount++;
         UpdateStatus();
@@ -131,25 +169,35 @@ public class AssemblySlotsManager : MonoBehaviour
 
     void FinishMission()
     {
-        if (exitBlocker) exitBlocker.SetActive(false);
+        if (exitBlocker != null) exitBlocker.SetActive(false);
 
         MapManager mapManager = FindObjectOfType<MapManager>();
         if (mapManager != null)
+        {
             mapManager.UnlockZone(7);
+        }
+        else
+        {
+            Debug.LogWarning($"[{name}] MapManager не найден на сцене. Зона 7 не разблокирована.");
+        }
 
         ShowCompletionMessage();
-        
-        if (successAudio) successAudio.Play();
+
+        if (successAudio != null) successAudio.Play();
 
         ShowHint("задание выполнено!");
     }
+
     void ShowCompletionMessage()
     {
-        successTextObject.text = "Задание выполнено: фаблаб!\nПолучен фрагмент пазла!";
-        successTextObject.gameObject.SetActive(true);
+        if (successTextObject != null)
+        {
+            successTextObject.text = "Задание выполнено: фаблаб!\nПолучен фрагмент пазла!";
+            successTextObject.gameObject.SetActive(true);
 
-        Invoke("HideNotification", 3f);
-        
+            CancelInvoke("HideNotification"); // Отменяем старый вызов, если он выполнялся
+            Invoke("HideNotification", 3f);
+        }
     }
 
     public void ShowHint(string msg)
@@ -160,18 +208,35 @@ public class AssemblySlotsManager : MonoBehaviour
 
     void HideNotification()
     {
-        successTextObject.gameObject.SetActive(false);
+        if (successTextObject != null)
+        {
+            successTextObject.gameObject.SetActive(false);
+        }
     }
 
     IEnumerator HintTimer(string msg)
     {
-        hintText.text = msg;
-        hintPanel.SetActive(true);
+        if (hintText != null) hintText.text = msg;
+        if (hintPanel != null) hintPanel.SetActive(true);
+
         yield return new WaitForSecondsRealtime(2.5f);
-        hintPanel.SetActive(false);
+
+        if (hintPanel != null) hintPanel.SetActive(false);
     }
 
-    void UpdateStatus() { if (statusText) statusText.text = "Собрано " + placedCount + "/" + totalNeeded; }
-    public void OpenAssemblyUI() { if (assemblyUIPanel) assemblyUIPanel.SetActive(true); UpdateStatus(); }
-    public void CloseAssemblyUI() { if (assemblyUIPanel) assemblyUIPanel.SetActive(false); }
+    void UpdateStatus()
+    {
+        if (statusText != null) statusText.text = "Собрано " + placedCount + "/" + totalNeeded;
+    }
+
+    public void OpenAssemblyUI()
+    {
+        if (assemblyUIPanel != null) assemblyUIPanel.SetActive(true);
+        UpdateStatus();
+    }
+
+    public void CloseAssemblyUI()
+    {
+        if (assemblyUIPanel != null) assemblyUIPanel.SetActive(false);
+    }
 }
