@@ -224,7 +224,7 @@ public class CardSystem : MonoBehaviour
                 cardToSlot[allCards[i]] = i;
                 allCards[i].SetCurrentSlotIndex(i);
                 allCards[i].SetCorrect(false);
-                allCards[i].GetComponent<Renderer>().material.color = Color.white;
+                
                 allCards[i].StopAllAnimations();
             }
         }
@@ -254,7 +254,7 @@ public class CardSystem : MonoBehaviour
             cardToSlot[allCards[i]] = targetSlot;
             allCards[i].SetCurrentSlotIndex(targetSlot);
             allCards[i].SetCorrect(false);
-            allCards[i].GetComponent<Renderer>().material.color = Color.white;
+            
         }
 
         correctCount = 0;

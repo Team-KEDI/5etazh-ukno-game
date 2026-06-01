@@ -101,7 +101,7 @@ public class Card3D : MonoBehaviour
         if (!isAnimating)
         {
             // Поворачиваем на 180 градусов по оси Z
-            targetRotation *= Quaternion.Euler(0, 0, 180f);
+            targetRotation *= Quaternion.Euler(0, 180f, 0);
             isAnimating = true;
         }
     }
@@ -165,6 +165,6 @@ public class Card3D : MonoBehaviour
     public void SetCorrect(bool correct)
     {
         isCorrect = correct;
-        GetComponent<Renderer>().material.color = correct ? GameColors.Primary : Color.white;
+        
     }
 }
