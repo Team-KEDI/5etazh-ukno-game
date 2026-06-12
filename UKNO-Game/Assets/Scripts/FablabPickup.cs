@@ -84,7 +84,7 @@ public class FablabPickup : MonoBehaviour
         Renderer r = item.GetComponent<Renderer>();
         if (r) r.material.color = originalItemColor;
 
-        item.transform.position = assemblyTablePoint.position + new Vector3(itemsCollected * 0.4f - 0.8f, 0.1f, 0.4f);
+        item.transform.position = assemblyTablePoint.position + new Vector3(itemsCollected * 0.4f - 1f, 0.1f, 0.4f);
         item.transform.rotation = Quaternion.identity;
 
         item.tag = "Untagged";

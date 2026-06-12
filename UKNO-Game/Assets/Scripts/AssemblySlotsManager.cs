@@ -51,7 +51,6 @@ public class AssemblySlotsManager : MonoBehaviour
 
     void ShootRay()
     {
-        // Проверка на случай, если камера была уничтожена, переключена или изначально не найдена
         if (mainCam == null)
         {
             mainCam = Camera.main;
@@ -131,7 +130,15 @@ public class AssemblySlotsManager : MonoBehaviour
 
         slot.isOccupied = true;
         Vector3 targetPos = slot.transform.position;
+
+        // ЖЕСТКАЯ СИНХРОНИЗАЦИЯ ПОВОРОТА:
+        // Деталь принимает точное глобальное вращение силуэта, созданного в DetailSlot
         Quaternion targetRot = slot.transform.rotation;
+        if (slot.visualCube != null)
+        {
+            targetRot = slot.visualCube.transform.rotation;
+        }
+
         slot.ClearSlot();
 
         while (detail != null && Vector3.Distance(detail.transform.position, targetPos) > 0.01f)
@@ -167,6 +174,9 @@ public class AssemblySlotsManager : MonoBehaviour
         }
     }
 
+
+
+
     void FinishMission()
     {
         if (exitBlocker != null) exitBlocker.SetActive(false);
@@ -195,7 +205,7 @@ public class AssemblySlotsManager : MonoBehaviour
             successTextObject.text = "Задание выполнено: фаблаб!\nПолучен фрагмент пазла!";
             successTextObject.gameObject.SetActive(true);
 
-            CancelInvoke("HideNotification"); // Отменяем старый вызов, если он выполнялся
+            CancelInvoke("HideNotification");
             Invoke("HideNotification", 3f);
         }
     }
