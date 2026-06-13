@@ -46,6 +46,7 @@ public class PendantSystem : MonoBehaviour
     [Header("Prompt")]
     public GameObject interactionPrompt;
     public TextMeshProUGUI promptText;
+    public PuzzleHolder puzzleHolder; // Ссылка на менеджер пазлов
 
     // Списки данных, которые автоматически заполнят Dropdown-компоненты
     private readonly string[] roles = {
@@ -364,8 +365,7 @@ public class PendantSystem : MonoBehaviour
         PlayerPrefs.SetString("PendantRole", selectedRole);
         PlayerPrefs.SetString("PendantConnection", selectedConnection);
         PlayerPrefs.SetString("PendantPhrase", userPhrase);
-        PlayerPrefs.SetInt("PendantCompleted", 1);
-        PlayerPrefs.Save();
+        puzzleHolder.AddPuzzle(); // Прибавить один пазл и обновить экран!
         if (pendantPrefab != null && pendantTarget != null)
         {
             GameObject pendant = Instantiate(pendantPrefab, pendantTarget.position, pendantTarget.rotation);

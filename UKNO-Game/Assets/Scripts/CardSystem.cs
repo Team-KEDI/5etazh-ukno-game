@@ -15,6 +15,7 @@ public class CardSystem : MonoBehaviour
     [Header("UI")]
     public TextMeshProUGUI winPanel;
     public Text progressText;
+    public PuzzleHolder puzzleHolder; // Ссылка на менеджер пазлов
 
     [Header("Настройки")]
     public float moveSpeed = 5f;
@@ -49,6 +50,7 @@ public class CardSystem : MonoBehaviour
     private bool isCompleted = false;
     private bool isPlayerNear = false;
     private int correctCount = 0;
+    private const string PuzzleKey = "CollectedPuzzles";
 
     void Start()
     {
@@ -65,6 +67,7 @@ public class CardSystem : MonoBehaviour
             interactionPrompt.SetActive(false);
         if (winPanel != null)
             winPanel.gameObject.SetActive(false);
+
 
         InitializeData();
     }
@@ -384,8 +387,8 @@ public class CardSystem : MonoBehaviour
             winPanel.text = "Пазл решён! Получен номер телефона.";
             winPanel.gameObject.SetActive(true);
         }
-        PlayerPrefs.SetInt("CardPuzzleCompleted", 1);
-        PlayerPrefs.Save();
+
+        puzzleHolder.AddPuzzle();
 
         Invoke("StopViewingWall", 3f);
         isCompleted = true;
