@@ -380,6 +380,12 @@ public class CardSystem : MonoBehaviour
 
     void WinGame()
     {
+        ToggleClipboard clipboard = FindObjectOfType<ToggleClipboard>();
+        if (clipboard != null)
+        {
+            clipboard.CompleteTask(4);
+        }
+
         Debug.Log("Победа! Все карточки на своих местах!");
 
         if (winPanel != null)

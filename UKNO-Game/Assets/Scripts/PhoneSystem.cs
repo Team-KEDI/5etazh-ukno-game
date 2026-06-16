@@ -326,6 +326,11 @@ public class PhoneSystem : MonoBehaviour
 
     void CompleteGame()
     {
+        ToggleClipboard clipboard = FindObjectOfType<ToggleClipboard>();
+        if (clipboard != null)
+        {
+            clipboard.CompleteTask(2);
+        }
         isCompleted = true;
         isGameActive = false;
 

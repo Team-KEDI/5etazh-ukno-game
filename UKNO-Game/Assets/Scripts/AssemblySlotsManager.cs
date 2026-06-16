@@ -200,6 +200,12 @@ public class AssemblySlotsManager : MonoBehaviour
 
     void ShowCompletionMessage()
     {
+        ToggleClipboard clipboard = FindObjectOfType<ToggleClipboard>();
+        if (clipboard != null)
+        {
+            clipboard.CompleteTask(1);
+        }
+
         if (successTextObject != null)
         {
             successTextObject.text = "Задание выполнено: фаблаб!\nПолучен фрагмент пазла!";

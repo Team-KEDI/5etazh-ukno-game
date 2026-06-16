@@ -180,6 +180,11 @@ public class MicrophoneInteraction : MonoBehaviour
 
     void ShowCompletionMessage()
     {
+        ToggleClipboard clipboard = FindObjectOfType<ToggleClipboard>();
+        if (clipboard != null)
+        {
+            clipboard.CompleteTask(0);
+        }
         successText.text = "Задание выполнено: Подкастерская!\nПолучен фрагмент пазла!";
         successText.gameObject.SetActive(true);
 

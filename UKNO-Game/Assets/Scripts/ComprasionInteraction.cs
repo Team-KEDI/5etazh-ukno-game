@@ -259,7 +259,11 @@ public class ComprasionInteractions : MonoBehaviour
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
         counterText.gameObject.SetActive(false);
-
+        ToggleClipboard clipboard = FindObjectOfType<ToggleClipboard>();
+        if (clipboard != null)
+        {
+            clipboard.CompleteTask(5);
+        }
         if (isCompleted)
         {
             PlayerPrefs.SetInt("PuzzleCompleted", 1);

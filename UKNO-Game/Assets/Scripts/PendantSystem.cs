@@ -362,6 +362,12 @@ public class PendantSystem : MonoBehaviour
     }
     public void CompletePendant()
     {
+        ToggleClipboard clipboard = FindObjectOfType<ToggleClipboard>();
+        if (clipboard != null)
+        {
+            clipboard.CompleteTask(3);
+        }
+
         PlayerPrefs.SetString("PendantRole", selectedRole);
         PlayerPrefs.SetString("PendantConnection", selectedConnection);
         PlayerPrefs.SetString("PendantPhrase", userPhrase);
