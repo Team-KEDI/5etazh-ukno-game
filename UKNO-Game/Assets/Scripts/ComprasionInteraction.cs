@@ -31,6 +31,9 @@ public class ComprasionInteractions : MonoBehaviour
     private bool isPuzzleActive = false;
     private bool isCompleted = false;
     private GameObject player;
+    private CharacterController savedCharController;
+    private MonoBehaviour savedMovementScript;
+
 
     private GameObject[] spotOccupants;
     private int[] objectSpotIndex;
@@ -205,44 +208,25 @@ public class ComprasionInteractions : MonoBehaviour
         else
             cameraTargetRot = puzzleCameraPosition.rotation;
 
-        isCameraMovingToPuzzle = true;
-        isPuzzleActive = false;
-    }
-
-    private void OnPuzzleCameraArrived()
-    {
-        // ГЛАВНОЕ: отключаем все скрипты, которые могут вращать камеру
-        DisableMouseControl();
-
-        // Включаем коллайдеры блоков для кликов
-        foreach (var obj in draggableObjects)
-            if (obj != null)
-            {
-                Collider col = obj.GetComponent<Collider>();
-                if (col != null) col.enabled = true;
-            }
-
-        Cursor.lockState = CursorLockMode.None;
-        Cursor.visible = true;
-
+        // ЗАПОМИНАЕМ ССЫЛКИ НА КОМПОНЕНТЫ ИГРОКА ДО ТОГО, КАК ОНИ ВЫКЛЮЧАТСЯ
         if (player != null)
         {
-            PlayerMovement movement = player.GetComponent<PlayerMovement>();
-            if (movement != null) movement.canMove = false;
+            savedCharController = player.GetComponent<CharacterController>();
+            if (savedCharController != null) savedCharController.enabled = false;
+
+            // Находим кастомный скрипт движения (пытаемся найти PlayerMovement)
+            var movement = player.GetComponent("PlayerMovement") as MonoBehaviour;
+            if (movement != null)
+            {
+                savedMovementScript = movement;
+                savedMovementScript.enabled = false; // Выключаем скрипт ходьбы
+            }
         }
 
-        isPuzzleActive = true;
-        UpdateCounterUI();
-        Debug.Log("Пазл активирован, камера на месте, управление мышью отключено.");
-    }
+        DisableMouseControl();
 
-    void DeactivatePuzzle(bool completed)
-    {
-        if (isCameraMovingToPuzzle || isCameraMovingBack) return;
-
-        isCameraMovingBack = true;
+        isCameraMovingToPuzzle = true;
         isPuzzleActive = false;
-        this.isCompleted = this.isCompleted || completed;
     }
 
     private void OnOriginalCameraArrived()
@@ -250,8 +234,12 @@ public class ComprasionInteractions : MonoBehaviour
         // Восстанавливаем управление мышью
         EnableMouseControl();
 
+        // ТОЧЕЧНОЕ ИСПРАВЛЕНИЕ: Включаем физическое перемещение обратно
         if (player != null)
         {
+            CharacterController cc = player.GetComponent<CharacterController>();
+            if (cc != null) cc.enabled = true;
+
             PlayerMovement movement = player.GetComponent<PlayerMovement>();
             if (movement != null) movement.canMove = true;
         }
@@ -259,11 +247,13 @@ public class ComprasionInteractions : MonoBehaviour
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
         counterText.gameObject.SetActive(false);
+
         ToggleClipboard clipboard = FindObjectOfType<ToggleClipboard>();
         if (clipboard != null)
         {
             clipboard.CompleteTask(5);
         }
+
         if (isCompleted)
         {
             PlayerPrefs.SetInt("PuzzleCompleted", 1);
@@ -279,6 +269,45 @@ public class ComprasionInteractions : MonoBehaviour
 
         ClearSelectedHighlight();
         Debug.Log("Пазл деактивирован, управление мышью восстановлено.");
+    }
+
+    private void OnPuzzleCameraArrived()
+    {
+        // Отключаем все скрипты, которые могут вращать камеру
+        DisableMouseControl();
+
+        // Включаем коллайдеры блоков для кликов
+        foreach (var obj in draggableObjects)
+        {
+            if (obj != null)
+            {
+                Collider col = obj.GetComponent<Collider>();
+                if (col != null) col.enabled = true;
+            }
+        }
+
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+
+        if (player != null)
+        {
+            PlayerMovement movement = player.GetComponent<PlayerMovement>();
+            if (movement != null) movement.canMove = false;
+        }
+
+        isPuzzleActive = true;
+        UpdateCounterUI();
+        Debug.Log("Пазл активирован, камера на месте, управление мышью отключено.");
+    }
+
+
+    void DeactivatePuzzle(bool completed)
+    {
+        if (isCameraMovingToPuzzle || isCameraMovingBack) return;
+
+        isCameraMovingBack = true;
+        isPuzzleActive = false;
+        this.isCompleted = this.isCompleted || completed;
     }
 
     void HandleSelectionAndSwap()
@@ -400,36 +429,39 @@ public class ComprasionInteractions : MonoBehaviour
         if (successText != null) successText.gameObject.SetActive(false);
     }
 
-    // ========== ОТКЛЮЧЕНИЕ УПРАВЛЕНИЯ МЫШЬЮ (ГАРАНТИРОВАННО РАБОТАЕТ) ==========
     private void DisableMouseControl()
     {
         List<MonoBehaviour> scriptsToDisable = new List<MonoBehaviour>();
 
-        // 1. Отключаем все пользовательские скрипты на камере, кроме стандартных
+        // 1. Отключаем пользовательские скрипты на камере
         var cameraScripts = playerCamera.GetComponents<MonoBehaviour>();
         foreach (var script in cameraScripts)
         {
             if (script == null) continue;
-            if (script == this) continue; // не отключаем сам этот скрипт
+            if (script == this) continue;
             string typeName = script.GetType().Name;
-            // Стандартные компоненты Unity, которые не влияют на мышь
-            if (typeName == "Camera" || typeName == "Transform" || typeName == "RectTransform")
+            if (typeName == "Camera" || typeName == "Transform" || typeName == "RectTransform" || typeName == "AudioListener")
                 continue;
-            // Отключаем всё остальное (включая MouseLook, FirstPersonController и т.д.)
             scriptsToDisable.Add(script);
         }
 
-        // 2. Если на игроке есть скрипты, которые могут вращать камеру (например, MouseLook) – отключаем их
+        // 2. Ищем скрипты вращения на игроке
         if (player != null)
         {
-            var playerScripts = player.GetComponents<MonoBehaviour>();
-            foreach (var script in playerScripts)
+            var allPlayerScripts = player.GetComponentsInChildren<MonoBehaviour>();
+            foreach (var script in allPlayerScripts)
             {
-                if (script == null) continue;
+                if (script == null || script == this) continue;
                 string typeName = script.GetType().Name;
+
+                // ИСПРАВЛЕНО: Мы убрали "Input" и "Controller" из черного списка! 
+                // Теперь блокируется ТОЛЬКО вращение мыши (Mouse и Look), а клики (Raycast) продолжают работать!
                 if (typeName.Contains("Mouse") || typeName.Contains("Look") || typeName.Contains("Camera"))
                 {
-                    scriptsToDisable.Add(script);
+                    if (typeName != "Camera")
+                    {
+                        scriptsToDisable.Add(script);
+                    }
                 }
             }
         }
@@ -443,16 +475,14 @@ public class ComprasionInteractions : MonoBehaviour
                 mouseControlScriptsEnabledState[i] = mouseControlScripts[i].enabled;
                 mouseControlScripts[i].enabled = false;
             }
-            Debug.Log($"Отключено {mouseControlScripts.Length} скриптов управления мышью: {string.Join(", ", System.Array.ConvertAll(mouseControlScripts, s => s.GetType().Name))}");
-        }
-        else
-        {
-            Debug.LogWarning("Не найдено скриптов для отключения! Возможно, управление мышью реализовано иначе.");
+            Debug.Log($"Отключено {mouseControlScripts.Length} скриптов обзора. Ввод мыши оставлен активным для Raycast.");
         }
     }
 
+
     private void EnableMouseControl()
     {
+        // 1. Восстанавливаем сохраненные скрипты из массива
         if (mouseControlScripts != null)
         {
             for (int i = 0; i < mouseControlScripts.Length; i++)
@@ -461,9 +491,58 @@ public class ComprasionInteractions : MonoBehaviour
                     mouseControlScripts[i].enabled = mouseControlScriptsEnabledState[i];
             }
             mouseControlScripts = null;
-            Debug.Log("Управление мышью восстановлено");
         }
+
+        // 2. Восстанавливаем физику и скрипт движения игрока
+        if (savedCharController != null)
+        {
+            savedCharController.enabled = true;
+            savedCharController = null;
+        }
+
+        if (savedMovementScript != null)
+        {
+            savedMovementScript.enabled = true;
+            savedMovementScript = null;
+        }
+
+        // 3. ГАРАНТИРОВАННЫЙ ВОЗВРАТ ПОВОРОТОВ КАМЕРЫ:
+        // Находим вообще ВСЕ скрипты на камере и включаем те, что отвечают за мышь/обзор
+        var allCameraScripts = playerCamera.GetComponents<MonoBehaviour>();
+        foreach (var script in allCameraScripts)
+        {
+            if (script == null || script == this) continue;
+            string typeName = script.GetType().Name;
+
+            // Включаем обратно MouseLook, CameraLook, FirstPersonLook и любые скрипты со словами Mouse/Look
+            if (typeName.Contains("Mouse") || typeName.Contains("Look") || typeName.Contains("Camera") || typeName.Contains("Input"))
+            {
+                script.enabled = true;
+            }
+        }
+
+        // 4. Если скрипт обзора висел на самом игроке или его детях — включаем и там
+        if (player != null)
+        {
+            var allPlayerScripts = player.GetComponentsInChildren<MonoBehaviour>();
+            foreach (var script in allPlayerScripts)
+            {
+                if (script == null || script == this) continue;
+                string typeName = script.GetType().Name;
+                if (typeName.Contains("Mouse") || typeName.Contains("Look") || typeName.Contains("Camera") || typeName.Contains("Input"))
+                {
+                    if (typeName != "Camera") // Не трогаем сам системный компонент Camera Unity
+                    {
+                        script.enabled = true;
+                    }
+                }
+            }
+        }
+
+        Debug.Log("Повороты камеры и мышь принудительно разблокированы!");
     }
+
+
 
     // ========== ТРИГГЕРЫ ДЛЯ ВЗАИМОДЕЙСТВИЯ ==========
     void OnTriggerEnter(Collider other)
