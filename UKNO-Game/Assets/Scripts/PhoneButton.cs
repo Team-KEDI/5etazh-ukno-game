@@ -3,7 +3,7 @@
 public class PhoneButton : MonoBehaviour
 {
     [Header("Настройки кнопки")]
-    public string digit; // Цифра/символ на кнопке (0-9, *, #)
+    public string digit;
     public int buttonIndex;
 
     [Header("Визуальные эффекты")]
@@ -12,14 +12,14 @@ public class PhoneButton : MonoBehaviour
     public AudioClip clickSound;
 
     [Header("Фоновый звук (Белый шум)")]
-    [Tooltip("Звук непрерывного гудка телефонной трубки")]
     public AudioClip dialToneSound;
 
     private Renderer buttonRenderer;
     private Material originalMaterial;
     private PhoneSystem phoneSystem;
     private AudioSource backgroundAudioSource;
-    private bool isDailingStarted = false;
+    private bool isDialingStarted = false;
+    private bool isDialToneEnabled = false;
 
     void Start()
     {
@@ -29,46 +29,30 @@ public class PhoneButton : MonoBehaviour
 
         phoneSystem = FindObjectOfType<PhoneSystem>();
 
-        // Создаем локальный источник звука для белого шума на этой кнопке
         backgroundAudioSource = GetComponent<AudioSource>();
         if (backgroundAudioSource == null)
         {
             backgroundAudioSource = gameObject.AddComponent<AudioSource>();
         }
         backgroundAudioSource.playOnAwake = false;
-        backgroundAudioSource.spatialBlend = 1f; // 3D звук для пространства УКНО
-        backgroundAudioSource.maxDistance = 5f;
+        backgroundAudioSource.spatialBlend = 0f; // 2D звук для чистоты
+        backgroundAudioSource.loop = true;
     }
 
     void Update()
     {
         if (phoneSystem == null) return;
 
-        // СОСТОЯНИЕ 1: Игрок начал игру на телефоне по кнопке E
-        if (phoneSystem.IsGameActive() && !backgroundAudioSource.isPlaying && !isDailingStarted && !IsAnyAudioPlayingInScene())
+        // Включаем белый шум при старте игры
+        if (phoneSystem.IsGameActive() && !isDialToneEnabled && !isDialingStarted)
         {
-            backgroundAudioSource.clip = dialToneSound;
-            backgroundAudioSource.loop = true; // Белый шум идет циклично
-            backgroundAudioSource.Play();
-            Debug.Log("[Телефон]: Игрок сел за телефон. Включен белый шум линии.");
+            PlayDialTone();
         }
 
-        // СОСТОЯНИЕ 3: Номер отзвучал (в сцене наступила тишина), возвращаем белый шум трубки обратно
-        if (phoneSystem.IsGameActive() && !backgroundAudioSource.isPlaying && isDailingStarted && !IsAnyAudioPlayingInScene())
-        {
-            isDailingStarted = false; // Сбрасываем флаг набора, возвращаем шум
-            backgroundAudioSource.clip = dialToneSound;
-            backgroundAudioSource.loop = true;
-            backgroundAudioSource.Play();
-            Debug.Log("[Телефон]: Воспроизведение записи завершено. Белый шум возвращен в трубку.");
-        }
-
-        // Если игрок принудительно вышел из игры (нажал Escape) — полностью глушим аппарат
+        // Если игрок вышел из игры — глушим всё
         if (!phoneSystem.IsGameActive() && backgroundAudioSource.isPlaying)
         {
-            backgroundAudioSource.Stop();
-            isDailingStarted = false;
-            Debug.Log("[Телефон]: Игрок встал из-за стола. Шум выключен.");
+            StopDialTone();
         }
     }
 
@@ -81,20 +65,20 @@ public class PhoneButton : MonoBehaviour
         if (buttonRenderer != null)
             buttonRenderer.material.color = pressedColor;
 
-        // Обычный пикающий звук нажатия кнопки телефона
+        // Звук нажатия
         if (clickSound != null)
             AudioSource.PlayClipAtPoint(clickSound, transform.position);
 
-        // Передаем нажатую цифру в систему телефона
-        phoneSystem.OnButtonPressed(digit);
-
-        // СОСТОЯНИЕ 2: Как только игрок начал нажимать кнопки набора, выключаем фоновый белый шум
-        if (backgroundAudioSource != null && backgroundAudioSource.isPlaying)
+        // Выключаем белый шум при наборе
+        if (backgroundAudioSource.isPlaying)
         {
-            backgroundAudioSource.Stop();
-            isDailingStarted = true; // Выставляем флаг, что идет процесс набора/ожидания ответа
-            Debug.Log("[Телефон]: Нажат номер. Белый шум временно отключен.");
+            StopDialTone();
+            isDialingStarted = true;
+            Debug.Log("[Телефон]: Начат набор. Белый шум выключен.");
         }
+
+        // Передаём цифру
+        phoneSystem.OnButtonPressed(digit);
 
         Invoke("ResetColor", 0.1f);
     }
@@ -105,16 +89,42 @@ public class PhoneButton : MonoBehaviour
             buttonRenderer.material.color = normalColor;
     }
 
-    // Служебный метод, проверяющий, играет ли сейчас какой-либо звук ответа/ошибки на сцене
-    private bool IsAnyAudioPlayingInScene()
+    void PlayDialTone()
     {
-        AudioSource[] sources = FindObjectsOfType<AudioSource>();
-        foreach (AudioSource source in sources)
+        if (dialToneSound == null)
         {
-            // Игнорируем собственный источник белого шума, проверяем только чужие (музыку/ответы)
-            if (source != backgroundAudioSource && source.isPlaying && source.spatialBlend > 0.5f)
-                return true;
+            Debug.LogWarning("[Телефон]: dialToneSound не назначен!");
+            return;
         }
-        return false;
+
+        backgroundAudioSource.clip = dialToneSound;
+        backgroundAudioSource.loop = true;
+        backgroundAudioSource.Play();
+        isDialToneEnabled = true;
+        Debug.Log("[Телефон]: Белый шум включен.");
+    }
+
+    void StopDialTone()
+    {
+        if (backgroundAudioSource.isPlaying)
+        {
+            backgroundAudioSource.Stop();
+        }
+        isDialToneEnabled = false;
+        Debug.Log("[Телефон]: Белый шум выключен.");
+    }
+
+    // Вызывается из PhoneSystem при завершении номера
+    public void OnNumberComplete()
+    {
+        isDialingStarted = false;
+        if (phoneSystem != null && phoneSystem.IsGameActive())
+        {
+            // Включаем белый шум обратно после завершения номера
+            if (!backgroundAudioSource.isPlaying && !isDialToneEnabled)
+            {
+                PlayDialTone();
+            }
+        }
     }
 }

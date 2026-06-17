@@ -25,9 +25,12 @@ public class PhoneSystem : MonoBehaviour
     [Header("Подсказка")]
     public GameObject interactionPrompt;
 
+    private AudioSource audioSource;
+
     private bool isGameActive = false;
     private string currentInput = "";
     private bool isWaitingForCompletion = false;
+    private bool isNumberChecked = false;
 
     private Vector3 originalPlayerPos;
     private Quaternion originalPlayerRot;
@@ -46,6 +49,14 @@ public class PhoneSystem : MonoBehaviour
     void Start()
     {
         mainCamera = Camera.main;
+
+        // Получаем AudioSource
+        audioSource = GetComponent<AudioSource>();
+        if (audioSource == null)
+        {
+            audioSource = gameObject.AddComponent<AudioSource>();
+        }
+        audioSource.playOnAwake = false;
 
         if (mainCamera != null)
         {
@@ -79,9 +90,15 @@ public class PhoneSystem : MonoBehaviour
             StopPhoneGame();
         }
 
-        if (isWaitingForCompletion && !IsPlayingAudio())
+        if (isWaitingForCompletion && !audioSource.isPlaying)
         {
             isWaitingForCompletion = false;
+            // Уведомляем кнопки, что номер завершён
+            PhoneButton[] buttons = FindObjectsOfType<PhoneButton>();
+            foreach (PhoneButton btn in buttons)
+            {
+                btn.OnNumberComplete();
+            }
         }
 
         if (isGameActive && player != null && phoneViewPoint != null)
@@ -101,21 +118,18 @@ public class PhoneSystem : MonoBehaviour
         }
     }
 
-    bool IsPlayingAudio()
-    {
-        AudioSource[] sources = FindObjectsOfType<AudioSource>();
-        foreach (AudioSource source in sources)
-        {
-            if (source.isPlaying)
-                return true;
-        }
-        return false;
-    }
-
     void StartPhoneGame()
     {
+        // Останавливаем звук если играет
+        if (audioSource.isPlaying)
+        {
+            audioSource.Stop();
+            isWaitingForCompletion = false;
+        }
+
         isGameActive = true;
         currentInput = "";
+        isNumberChecked = false;
         UpdateDisplay();
 
         Debug.Log("Телефонная игра начата");
@@ -152,8 +166,15 @@ public class PhoneSystem : MonoBehaviour
 
     void StopPhoneGame()
     {
+        // Останавливаем звук при выходе
+        if (audioSource.isPlaying)
+        {
+            audioSource.Stop();
+        }
+
         isGameActive = false;
         isWaitingForCompletion = false;
+        isNumberChecked = false;
 
         Debug.Log("Телефонная игра остановлена");
 
@@ -199,12 +220,13 @@ public class PhoneSystem : MonoBehaviour
     {
         if (!isGameActive) return;
         if (isWaitingForCompletion) return;
+        if (isNumberChecked) return;
 
         Debug.Log($"Нажата кнопка: {digit}");
 
-        if (clickSound != null)
+        if (clickSound != null && audioSource != null)
         {
-            AudioSource.PlayClipAtPoint(clickSound, mainCamera.transform.position);
+            audioSource.PlayOneShot(clickSound);
         }
 
         if (currentInput.Length < maxInputLength)
@@ -215,6 +237,7 @@ public class PhoneSystem : MonoBehaviour
 
             if (currentInput.Length == maxInputLength)
             {
+                isNumberChecked = true;
                 Debug.Log($"Введено {maxInputLength} цифр: \"{currentInput}\", ищем звук...");
                 PlaySoundForNumber();
             }
@@ -227,7 +250,6 @@ public class PhoneSystem : MonoBehaviour
 
         Debug.Log($"Поиск номера \"{currentInput}\" в списке: [{string.Join(", ", phoneNumbers)}]");
 
-        // Ищем номер в списке
         for (int i = 0; i < phoneNumbers.Length; i++)
         {
             Debug.Log($"Сравниваем с phoneNumbers[{i}] = \"{phoneNumbers[i]}\"");
@@ -235,18 +257,16 @@ public class PhoneSystem : MonoBehaviour
             {
                 foundIndex = i;
                 Debug.Log($"СОВПАДЕНИЕ! Индекс {i}");
-                break; // Выходим из цикла при первом совпадении
+                break;
             }
         }
 
-        // Проверяем результат поиска
         if (foundIndex != -1)
         {
-            // Проверяем наличие звука
             if (phoneSounds != null && foundIndex < phoneSounds.Length && phoneSounds[foundIndex] != null)
             {
                 Debug.Log($"Номер \"{currentInput}\" найден! Воспроизводим звук {foundIndex}");
-                AudioSource.PlayClipAtPoint(phoneSounds[foundIndex], mainCamera.transform.position);
+                audioSource.PlayOneShot(phoneSounds[foundIndex]);
                 isWaitingForCompletion = true;
                 ShowSuccess();
             }
@@ -254,9 +274,15 @@ public class PhoneSystem : MonoBehaviour
             {
                 Debug.LogWarning($"Номер \"{currentInput}\" найден, но звук для индекса {foundIndex} не назначен!");
                 ShowWrong();
-                if (errorSound != null)
+                if (errorSound != null && audioSource != null)
                 {
-                    AudioSource.PlayClipAtPoint(errorSound, mainCamera.transform.position);
+                    audioSource.PlayOneShot(errorSound);
+                }
+                // Если звука нет - сразу уведомляем кнопки
+                PhoneButton[] buttons = FindObjectsOfType<PhoneButton>();
+                foreach (PhoneButton btn in buttons)
+                {
+                    btn.OnNumberComplete();
                 }
             }
         }
@@ -264,13 +290,18 @@ public class PhoneSystem : MonoBehaviour
         {
             Debug.Log($"Номер \"{currentInput}\" НЕ НАЙДЕН в списке!");
             ShowWrong();
-            if (errorSound != null)
+            if (errorSound != null && audioSource != null)
             {
-                AudioSource.PlayClipAtPoint(errorSound, mainCamera.transform.position);
+                audioSource.PlayOneShot(errorSound);
+            }
+            // Если звука нет - сразу уведомляем кнопки
+            PhoneButton[] buttons = FindObjectsOfType<PhoneButton>();
+            foreach (PhoneButton btn in buttons)
+            {
+                btn.OnNumberComplete();
             }
         }
 
-        // Очищаем ввод после попытки
         ClearInput();
     }
 
@@ -307,6 +338,7 @@ public class PhoneSystem : MonoBehaviour
     void ClearInput()
     {
         currentInput = "";
+        isNumberChecked = false;
         UpdateDisplay();
         Debug.Log("Ввод очищен");
     }
