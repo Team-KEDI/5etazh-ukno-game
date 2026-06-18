@@ -2,13 +2,18 @@ using UnityEngine;
 
 public class ClickableDetailForSlots : MonoBehaviour
 {
-    public int detailID;
+    [SerializeField] private int _detailID;
     private Vector3 originalScale;
     private bool isSelected = false;
 
+    // Свойство только для чтения. Защищает ID от изменений кодом
+    public int detailID => _detailID;
+
     public void Initialize(int id)
     {
-        detailID = id;
+        // СТРОКА С ТРЭШ-ИЗМЕНЕНИЕМ ID УДАЛЕНА: detailID = id;
+        // Теперь значение из инспектора железно сохраняется!
+
         originalScale = transform.localScale;
         if (GetComponent<Collider>() == null) gameObject.AddComponent<BoxCollider>();
     }

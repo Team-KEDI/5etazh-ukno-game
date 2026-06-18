@@ -28,6 +28,7 @@ public class AssemblySlotsManager : MonoBehaviour
     private int selectedID = -1;
     private Camera mainCam;
     private Coroutine hintCoroutine;
+    public PuzzleHolder puzzleHolder; // Ссылка на менеджер пазлов
 
     void Start()
     {
@@ -214,6 +215,8 @@ public class AssemblySlotsManager : MonoBehaviour
             CancelInvoke("HideNotification");
             Invoke("HideNotification", 3f);
         }
+
+        puzzleHolder.AddPuzzle(); // Прибавить один пазл и обновить экран!
     }
 
     public void ShowHint(string msg)

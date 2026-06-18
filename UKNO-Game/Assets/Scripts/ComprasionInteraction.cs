@@ -33,7 +33,7 @@ public class ComprasionInteractions : MonoBehaviour
     private GameObject player;
     private CharacterController savedCharController;
     private MonoBehaviour savedMovementScript;
-
+    public PuzzleHolder puzzleHolder; // Ссылка на менеджер пазлов
 
     private GameObject[] spotOccupants;
     private int[] objectSpotIndex;
@@ -62,16 +62,28 @@ public class ComprasionInteractions : MonoBehaviour
     {
         PlayerPrefs.DeleteKey("PuzzleCompleted");
 
-        hint.SetActive(false);
-        counterText.gameObject.SetActive(false);
+        if (hint != null) hint.SetActive(false);
+        if (counterText != null) counterText.gameObject.SetActive(false);
 
         audioSource = GetComponent<AudioSource>();
         if (audioSource == null) audioSource = gameObject.AddComponent<AudioSource>();
+
+        // Полная проверка на наличие объектов в инспекторе
+        if (targetSpots == null || targetSpots.Length == 0 || draggableObjects == null || draggableObjects.Length == 0)
+        {
+            Debug.LogError($"[{name}] КРИТИЧЕСКАЯ ОШИБКА: Забыли перетащить баночки или точки в Инспектор стенда!");
+            return;
+        }
 
         spotOccupants = new GameObject[targetSpots.Length];
         objectSpotIndex = new int[draggableObjects.Length];
         for (int i = 0; i < objectSpotIndex.Length; i++) objectSpotIndex[i] = -1;
 
+        // Автоматически подстраиваем размер служебных массивов под 15 баночек
+        blockTargetColumn = new int[draggableObjects.Length];
+        blockTargetRow = new int[draggableObjects.Length];
+
+        // Жестко фиксируем правильную сетку 3 ряда по 5 баночек
         for (int i = 0; i < draggableObjects.Length; i++)
         {
             blockTargetColumn[i] = i % 5;
@@ -85,52 +97,48 @@ public class ComprasionInteractions : MonoBehaviour
         }
         else
         {
+            // ИСПРАВЛЕНО: Запускаем только чистый опрос позиций банок без заигрываний с цветом материалов!
             GenerateRandomConfiguration();
         }
 
         if (successText != null) successText.gameObject.SetActive(false);
-        Debug.Log("ComprasionInteractions Start - готов");
+        Debug.Log($"[{name}] Скрипт успешно перезапущен без генерации цветов. Готов к работе.");
     }
 
     void GenerateRandomConfiguration()
     {
-        List<Color> sourceColors = new List<Color>(colorOptions);
-        while (sourceColors.Count < 5)
-            sourceColors.Add(Random.ColorHSV(0f, 1f, 0.5f, 1f, 0.8f, 1f));
-
-        List<Color> shuffledColors = new List<Color>(sourceColors);
-        for (int i = 0; i < shuffledColors.Count; i++)
-        {
-            Color temp = shuffledColors[i];
-            int randomIndex = Random.Range(i, shuffledColors.Count);
-            shuffledColors[i] = shuffledColors[randomIndex];
-            shuffledColors[randomIndex] = temp;
-        }
-        for (int i = 0; i < 5; i++)
-            columnColors[i] = shuffledColors[i];
+        // Очищаем массив занятых точек перед проверкой
+        System.Array.Clear(spotOccupants, 0, spotOccupants.Length);
 
         for (int i = 0; i < draggableObjects.Length; i++)
         {
+            // Если вдруг в массиве есть пустой слот (Missing/None), просто пропускаем его, чтобы игра не крашилась
             if (draggableObjects[i] == null) continue;
-            Renderer rend = draggableObjects[i].GetComponent<Renderer>();
-            if (rend != null)
-                rend.material.color = columnColors[blockTargetColumn[i]];
-        }
 
-        List<int> freeSpots = new List<int>();
-        for (int i = 0; i < targetSpots.Length; i++) freeSpots.Add(i);
+            float closestDistance = Mathf.Infinity;
+            int closestSpotIndex = -1;
 
-        for (int i = 0; i < draggableObjects.Length; i++)
-        {
-            if (draggableObjects[i] == null) continue;
-            int rand = Random.Range(0, freeSpots.Count);
-            int spotIdx = freeSpots[rand];
-            freeSpots.RemoveAt(rand);
+            // Находим, к какой именно точке на полке сейчас ближе всего стоит эта банка на сцене
+            for (int j = 0; j < targetSpots.Length; j++)
+            {
+                if (targetSpots[j] == null) continue;
+                float distance = Vector3.Distance(draggableObjects[i].transform.position, targetSpots[j].position);
+                if (distance < closestDistance)
+                {
+                    closestDistance = distance;
+                    closestSpotIndex = j;
+                }
+            }
 
-            spotOccupants[spotIdx] = draggableObjects[i];
-            objectSpotIndex[i] = spotIdx;
-            draggableObjects[i].transform.position = targetSpots[spotIdx].position;
-            draggableObjects[i].transform.rotation = targetSpots[spotIdx].rotation;
+            // Привязываем банку к этой точке
+            if (closestSpotIndex != -1)
+            {
+                spotOccupants[closestSpotIndex] = draggableObjects[i];
+                objectSpotIndex[i] = closestSpotIndex;
+
+                // Фиксируем банку ровно на полке (повороты НЕ трогаем, чтобы банки не падали)
+                draggableObjects[i].transform.position = targetSpots[closestSpotIndex].position;
+            }
         }
 
         UpdateCorrectCount();
@@ -140,16 +148,28 @@ public class ComprasionInteractions : MonoBehaviour
     void UpdateCorrectCount()
     {
         correctCount = 0;
+
+        if (draggableObjects == null || objectSpotIndex == null || blockTargetColumn == null || blockTargetRow == null)
+            return;
+
         for (int i = 0; i < draggableObjects.Length; i++)
         {
+            if (i >= objectSpotIndex.Length || i >= blockTargetColumn.Length || i >= blockTargetRow.Length)
+                continue;
+
             int spotIdx = objectSpotIndex[i];
             if (spotIdx == -1) continue;
+
+            // Рассчитываем текущие координаты банки по сетке 3х5
             int spotCol = spotIdx % 5;
             int spotRow = spotIdx / 5;
+
+            // Сверяем с идеальными фабричными координатами
             if (spotCol == blockTargetColumn[i] && spotRow == blockTargetRow[i])
                 correctCount++;
         }
     }
+
 
     void UpdateCounterUI()
     {
@@ -170,14 +190,62 @@ public class ComprasionInteractions : MonoBehaviour
             MoveCameraTowardsTarget(originalCameraPos, originalCameraRot, ref isCameraMovingBack, OnOriginalCameraArrived);
         }
 
-        if (!isCompleted && isPuzzleActive)
-            HandleSelectionAndSwap();
-
-        if (!isCompleted && isPlayerNear && Input.GetKeyDown(KeyCode.E) && !isPuzzleActive && !isCameraMovingToPuzzle && !isCameraMovingBack)
+        // Если пазл еще не решен, обрабатываем логику баночек
+        if (!isCompleted)
         {
-            ActivatePuzzle();
+            if (isPuzzleActive && !isCameraMovingToPuzzle && !isCameraMovingBack)
+                HandleSelectionAndSwap();
+
+            if (Input.GetKeyDown(KeyCode.E) && !isPuzzleActive && !isCameraMovingToPuzzle && !isCameraMovingBack)
+            {
+                if (isPlayerNear) ActivatePuzzle();
+            }
+        }
+        // Если пазл РЕШЕН и игрок нажимает E у стола
+        else if (Input.GetKeyDown(KeyCode.E))
+        {
+            Debug.Log("[SYSTEM TEST] Зафиксировано нажатие кнопки E после конца игры с баночками!");
+
+            if (playerCamera != null)
+            {
+                Ray testRay = new Ray(playerCamera.transform.position, playerCamera.transform.forward);
+                RaycastHit testHit;
+
+                // Рисуем на сцене зеленую линию
+                Debug.DrawRay(playerCamera.transform.position, playerCamera.transform.forward * 10f, Color.green, 3f);
+
+                // ИСПРАВЛЕНИЕ: Пускаем луч, игнорируя триггеры и принудительно фильтруя попадания.
+                // Мы делаем Raycast на 15 метров вперед.
+                if (Physics.Raycast(testRay, out testHit, 15f))
+                {
+                    // Если луч ВСЁ ЕЩЁ по какой-то причине попал в игрока, мы принудительно пускаем ВТОРОЙ луч, 
+                    // сместив его стартовую точку на 0.5 метра вперед — за пределы капсулы персонажа!
+                    if (testHit.collider.gameObject.CompareTag("Player") || testHit.collider.gameObject.name == "Player")
+                    {
+                        Debug.Log("[SYSTEM TEST] Первый луч попал в игрока. Выталкиваем стартовую точку луча за пределы капсулы...");
+
+                        Vector3 forwardStartPoint = playerCamera.transform.position + playerCamera.transform.forward * 0.6f;
+                        Ray clearRay = new Ray(forwardStartPoint, playerCamera.transform.forward);
+
+                        if (Physics.Raycast(clearRay, out testHit, 15f))
+                        {
+                            Debug.Log($"[SYSTEM TEST] УСПЕХ! Смещенный луч пробил капсулу и попал в: '{testHit.collider.gameObject.name}', Тег: '{testHit.collider.gameObject.tag}'");
+                        }
+                        else
+                        {
+                            Debug.LogWarning("[SYSTEM TEST] Смещенный луч улетел в пустоту.");
+                        }
+                    }
+                    else
+                    {
+                        Debug.Log($"[SYSTEM TEST] Чистый луч сразу попал в объект: '{testHit.collider.gameObject.name}', Тег: '{testHit.collider.gameObject.tag}'");
+                    }
+                }
+            }
         }
     }
+
+
 
     private void MoveCameraTowardsTarget(Vector3 targetPos, Quaternion targetRot, ref bool isMoving, System.Action onComplete)
     {
@@ -196,8 +264,20 @@ public class ComprasionInteractions : MonoBehaviour
 
     void ActivatePuzzle()
     {
+        Debug.Log("[DEBUG] Метод ActivatePuzzle() начал работу.");
+
         if (hint != null) hint.SetActive(false);
-        counterText.gameObject.SetActive(true);
+
+        // ИСПРАВЛЕНИЕ: Теперь строка 235 абсолютно безопасна! 
+        // Если counterText не назначен в инспекторе, игра больше не упадет с ошибкой.
+        if (counterText != null)
+        {
+            counterText.gameObject.SetActive(true);
+        }
+        else
+        {
+            Debug.LogWarning("[DEBUG] Внимание! Текст 'counterText' не назначен в инспекторе компонента.");
+        }
 
         originalCameraPos = playerCamera.transform.position;
         originalCameraRot = playerCamera.transform.rotation;
@@ -208,33 +288,34 @@ public class ComprasionInteractions : MonoBehaviour
         else
             cameraTargetRot = puzzleCameraPosition.rotation;
 
-        // ЗАПОМИНАЕМ ССЫЛКИ НА КОМПОНЕНТЫ ИГРОКА ДО ТОГО, КАК ОНИ ВЫКЛЮЧАТСЯ
+        DisableMouseControl();
+
         if (player != null)
         {
             savedCharController = player.GetComponent<CharacterController>();
             if (savedCharController != null) savedCharController.enabled = false;
 
-            // Находим кастомный скрипт движения (пытаемся найти PlayerMovement)
             var movement = player.GetComponent("PlayerMovement") as MonoBehaviour;
             if (movement != null)
             {
                 savedMovementScript = movement;
-                savedMovementScript.enabled = false; // Выключаем скрипт ходьбы
+                savedMovementScript.enabled = false;
             }
         }
 
-        DisableMouseControl();
-
         isCameraMovingToPuzzle = true;
         isPuzzleActive = false;
+
+        Debug.Log("[DEBUG] ActivatePuzzle успешно завершил работу. Камера летит к стенду.");
     }
+
 
     private void OnOriginalCameraArrived()
     {
-        // Восстанавливаем управление мышью
+        // 1. Восстанавливаем управление мышью и скрипты обзора
         EnableMouseControl();
 
-        // ТОЧЕЧНОЕ ИСПРАВЛЕНИЕ: Включаем физическое перемещение обратно
+        // 2. Включаем физическое перемещение игрока обратно
         if (player != null)
         {
             CharacterController cc = player.GetComponent<CharacterController>();
@@ -246,13 +327,74 @@ public class ComprasionInteractions : MonoBehaviour
 
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
-        counterText.gameObject.SetActive(false);
 
+        if (counterText != null)
+        {
+            counterText.gameObject.SetActive(false);
+        }
+
+        // Засчитываем задачу на планшетке
         ToggleClipboard clipboard = FindObjectOfType<ToggleClipboard>();
         if (clipboard != null)
         {
             clipboard.CompleteTask(5);
         }
+
+        // ======================================================================
+        // ЖЕСТКИЙ ЯВНЫЙ МЕТОД: ВОССТАНОВЛЕНИЕ ПОДБОРА ДЕТАЛЕЙ НА ВСЕМ ЭТАЖЕ
+        // ======================================================================
+
+        // 1. Находим вообще ВСЕ детали со скриптом ClickableDetailForSlots на сцене
+        ClickableDetailForSlots[] allDetailsOnFloor = FindObjectsOfType<ClickableDetailForSlots>(true);
+
+        foreach (var detail in allDetailsOnFloor)
+        {
+            if (detail != null)
+            {
+                // Принудительно включаем сам скрипт на детали, если он ушел в спячку
+                detail.enabled = true;
+
+                // Гарантируем, что у детали включен физический коллайдер для Рэйкаста
+                Collider detailCol = detail.GetComponent<Collider>();
+                if (detailCol != null) detailCol.enabled = true;
+
+                // Восстанавливаем оригинальный слой и тег, если они сбились во время игры
+                detail.gameObject.tag = "Consumable"; // Замените на ваш тег деталей, если он другой
+
+                // Заставляем Unity принудительно обновить физическую матрицу этого объекта,
+                // чтобы оригинальный скрипт подбора снова начал его видеть!
+                detail.gameObject.SendMessage("Start", SendMessageOptions.DontRequireReceiver);
+            }
+        }
+
+        // 2. Находим главный менеджер сборки платы и будим его
+        AssemblySlotsManager slotsManager = FindObjectOfType<AssemblySlotsManager>();
+        if (slotsManager != null)
+        {
+            slotsManager.enabled = true;
+            // Даем сигнал менеджеру обновить интерфейс и проверить ввод
+            slotsManager.SendMessage("Start", SendMessageOptions.DontRequireReceiver);
+        }
+
+        // 3. Находим игрока и принудительно возвращаем ему все кастомные скрипты взаимодействия
+        GameObject mainPlayer = GameObject.FindGameObjectWithTag("Player");
+        if (mainPlayer != null)
+        {
+            var playerScripts = mainPlayer.GetComponentsInChildren<MonoBehaviour>(true);
+            foreach (var script in playerScripts)
+            {
+                if (script == null || script == this) continue;
+                string name = script.GetType().Name;
+
+                // Если ваш менеджер подбора называется как-то иначе, этот код принудительно его разбудит
+                if (name.Contains("Interact") || name.Contains("Pick") || name.Contains("Raycast") || name.Contains("Input"))
+                {
+                    script.enabled = true;
+                }
+            }
+        }
+
+        // ======================================================================
 
         if (isCompleted)
         {
@@ -265,11 +407,16 @@ public class ComprasionInteractions : MonoBehaviour
                 successText.gameObject.SetActive(true);
                 Invoke(nameof(HideSuccessMessage), 3f);
             }
-        }
 
+            // Полностью отключаем скрипт баночек, чтобы он не перехватывал кнопку E
+            this.enabled = false;
+            Debug.Log("[STAND FIXED] Скрипт баночек полностью отключен. Кнопка Е освобождена для подбора деталей.");
+        }
+        puzzleHolder.AddPuzzle(); // Прибавить один пазл и обновить экран!
         ClearSelectedHighlight();
-        Debug.Log("Пазл деактивирован, управление мышью восстановлено.");
     }
+
+
 
     private void OnPuzzleCameraArrived()
     {
@@ -521,6 +668,7 @@ public class ComprasionInteractions : MonoBehaviour
             }
         }
 
+
         // 4. Если скрипт обзора висел на самом игроке или его детях — включаем и там
         if (player != null)
         {
@@ -542,16 +690,24 @@ public class ComprasionInteractions : MonoBehaviour
         Debug.Log("Повороты камеры и мышь принудительно разблокированы!");
     }
 
-
-
     // ========== ТРИГГЕРЫ ДЛЯ ВЗАИМОДЕЙСТВИЯ ==========
     void OnTriggerEnter(Collider other)
     {
-        if (other.CompareTag("Player") && !isCompleted)
+        Debug.Log($"[DEBUG] В триггер вошел объект: {other.name} с тегом: '{other.tag}'");
+
+        if (other.CompareTag("Player"))
         {
-            isPlayerNear = true;
-            player = other.gameObject;
-            if (hint != null) hint.SetActive(true);
+            if (!isCompleted)
+            {
+                isPlayerNear = true;
+                player = other.gameObject;
+                if (hint != null) hint.SetActive(true);
+                Debug.Log("[DEBUG] Игрок успешно распознан. Текст-подсказка включен. Теперь можно нажать E.");
+            }
+            else
+            {
+                Debug.Log("[DEBUG] Игрок вошел в триггер, но этот пазл уже имеет статус выполненного (isCompleted = true).");
+            }
         }
     }
 
@@ -559,6 +715,7 @@ public class ComprasionInteractions : MonoBehaviour
     {
         if (other.CompareTag("Player"))
         {
+            Debug.Log("[DEBUG] Игрок вышел из триггер-зоны стенда.");
             isPlayerNear = false;
             player = null;
             if (hint != null) hint.SetActive(false);
