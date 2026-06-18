@@ -7,6 +7,7 @@ public class MicrophoneInteraction : MonoBehaviour
     [Header("Настройки")]
     public Material highlightMaterial;
     public Material defaultMaterial;
+    public PuzzleHolder puzzleHolder; // Ссылка на менеджер пазлов
 
     [Header("UI элементы")]
     public GameObject textInputPanel;
@@ -41,6 +42,9 @@ public class MicrophoneInteraction : MonoBehaviour
         errorMessageText.gameObject.SetActive(false);
         hint.SetActive(false);
         successText.gameObject.SetActive(false);
+
+        PlayerPrefs.SetString("MascotPhrase", "Приходите и посмотрите вживую!");
+        PlayerPrefs.Save();
     }
 
     void Update()
@@ -122,7 +126,7 @@ public class MicrophoneInteraction : MonoBehaviour
         PlayerPrefs.Save();
 
         // Отмечаем задание выполненным
-        PlayerPrefs.SetInt("PodcastQuestCompleted", 1);
+        puzzleHolder.AddPuzzle(); // Прибавить один пазл и обновить экран!
 
         // Закрываем UI
         textInputPanel.SetActive(false);

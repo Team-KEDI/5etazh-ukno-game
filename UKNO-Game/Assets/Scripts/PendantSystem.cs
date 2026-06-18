@@ -189,22 +189,12 @@ public class PendantSystem : MonoBehaviour
     {
         isGameActive = true;
 
-        if (player != null)
-        {
-            originalPlayerPos = player.transform.position;
-            originalPlayerRot = player.transform.rotation;
-        }
-
-        if (mainCamera != null)
-        {
-            originalCameraPos = mainCamera.transform.position;
-            originalCameraRot = mainCamera.transform.rotation;
-        }
-
+        // 1. СНАЧАЛА ПОЛНОСТЬЮ ОСТАНАВЛИВАЕМ ИГРОКА И ОРУЖИЕ/КАМЕРУ
         if (playerRigidbody != null)
         {
             playerRigidbody.isKinematic = true;
             playerRigidbody.velocity = Vector3.zero;
+            playerRigidbody.angularVelocity = Vector3.zero; // Гасим вращение, если есть
         }
 
         if (playerMovement != null)
@@ -219,6 +209,21 @@ public class PendantSystem : MonoBehaviour
 
         HidePlayerModel(true);
 
+        // 2. И ТОЛЬКО ТЕПЕРЬ, КОГДА ВСЁ ДВИЖЕНИЕ ОСТАНОВЛЕНО, ДЕЛАЕМ «СНИМОК» ИСХОДНЫХ КООРДИНАТ
+        // Камера и игрок замерли, поэтому координаты запишутся без микро-сдвигов от бега
+        if (player != null)
+        {
+            originalPlayerPos = player.transform.position;
+            originalPlayerRot = player.transform.rotation;
+        }
+
+        if (mainCamera != null)
+        {
+            originalCameraPos = mainCamera.transform.position;
+            originalCameraRot = mainCamera.transform.rotation;
+        }
+
+        // 3. ОТКРЫВАЕМ ИНТЕРФЕЙС МИНИ-ИГРЫ
         ShowRolePanel();
     }
 
@@ -228,12 +233,29 @@ public class PendantSystem : MonoBehaviour
 
         if (player != null)
         {
+            // 1. СНАЧАЛА НАХОДИМ И ВКЛЮЧАЕМ КОЛЛАЙДЕР ИГРОКА
+            // Используем GetComponentInChildren на случай, если коллайдер лежит на дочернем объекте
+            Collider playerCollider = player.GetComponentInChildren<Collider>();
+            if (playerCollider != null)
+            {
+                playerCollider.enabled = true;
+            }
+
+            // 2. ВРЕМЕННО ДЕРЖИМ КИНЕМАТИКУ ДЛЯ БЕЗОПАСНОГО ТЕЛЕПОРТА
+            if (playerRigidbody != null)
+            {
+                playerRigidbody.isKinematic = true;
+                playerRigidbody.velocity = Vector3.zero;
+                playerRigidbody.angularVelocity = Vector3.zero;
+            }
+
+            // 3. ТЕЛЕПОРТИРУЕМ ИГРОКА В СТАБИЛЬНЫЕ КООРДИНАТЫ
             player.transform.position = originalPlayerPos;
             player.transform.rotation = originalPlayerRot;
 
+            // 4. ВКЛЮЧАЕМ ФИЗИКУ ОБРАТНО (теперь коллайдер на месте, и пол его удержит)
             if (playerRigidbody != null)
             {
-                playerRigidbody.velocity = Vector3.zero;
                 playerRigidbody.isKinematic = false;
             }
         }
@@ -252,8 +274,6 @@ public class PendantSystem : MonoBehaviour
 
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
-
-        HidePlayerModel(false);
 
         if (gamePanel != null)
             gamePanel.SetActive(false);

@@ -268,8 +268,36 @@ public class ComprasionInteractions : MonoBehaviour
 
         if (hint != null) hint.SetActive(false);
 
-        // ИСПРАВЛЕНИЕ: Теперь строка 235 абсолютно безопасна! 
-        // Если counterText не назначен в инспекторе, игра больше не упадет с ошибкой.
+        // 1. СНАЧАЛА ПОЛНОСТЬЮ ОСТАНАВЛИВАЕМ ИГРОКА И БЛОКИРУЕМ МЫШЬ
+        DisableMouseControl();
+
+        if (player != null)
+        {
+            savedCharController = player.GetComponent<CharacterController>();
+            if (savedCharController != null) savedCharController.enabled = false;
+
+            // Если у игрока есть физическое тело, гасим инерцию бега
+            Rigidbody rb = player.GetComponent<Rigidbody>();
+            if (rb != null)
+            {
+                rb.velocity = Vector3.zero;
+                rb.angularVelocity = Vector3.zero;
+            }
+
+            var movement = player.GetComponent("PlayerMovement") as MonoBehaviour;
+            if (movement != null)
+            {
+                savedMovementScript = movement;
+                savedMovementScript.enabled = false; // Выключаем скрипт ходьбы
+            }
+        }
+
+        // 2. И ТОЛЬКО ТЕПЕРЬ ЗАПОМИНАЕМ КООРДИНАТЫ КАМЕРЫ
+        // Камера больше не дернется из-за инерции ходьбы в этот кадр
+        originalCameraPos = playerCamera.transform.position;
+        originalCameraRot = playerCamera.transform.rotation;
+
+        // 3. ОТПРАВЛЯЕМ КАМЕРУ К СТЕНДУ
         if (counterText != null)
         {
             counterText.gameObject.SetActive(true);
@@ -279,8 +307,6 @@ public class ComprasionInteractions : MonoBehaviour
             Debug.LogWarning("[DEBUG] Внимание! Текст 'counterText' не назначен в инспекторе компонента.");
         }
 
-        originalCameraPos = playerCamera.transform.position;
-        originalCameraRot = playerCamera.transform.rotation;
         cameraTargetPos = puzzleCameraPosition.position;
 
         if (puzzleCameraLookAt != null)
@@ -288,26 +314,12 @@ public class ComprasionInteractions : MonoBehaviour
         else
             cameraTargetRot = puzzleCameraPosition.rotation;
 
-        DisableMouseControl();
-
-        if (player != null)
-        {
-            savedCharController = player.GetComponent<CharacterController>();
-            if (savedCharController != null) savedCharController.enabled = false;
-
-            var movement = player.GetComponent("PlayerMovement") as MonoBehaviour;
-            if (movement != null)
-            {
-                savedMovementScript = movement;
-                savedMovementScript.enabled = false;
-            }
-        }
-
         isCameraMovingToPuzzle = true;
         isPuzzleActive = false;
 
-        Debug.Log("[DEBUG] ActivatePuzzle успешно завершил работу. Камера летит к стенду.");
+        Debug.Log("[DEBUG] ActivatePuzzle успешно завершил работу. Камера зафиксирована и летит к стенду.");
     }
+
 
 
     private void OnOriginalCameraArrived()

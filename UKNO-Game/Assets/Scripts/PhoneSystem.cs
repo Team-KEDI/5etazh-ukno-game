@@ -8,6 +8,7 @@ public class PhoneSystem : MonoBehaviour
     public AudioClip[] phoneSounds; // Звуки для каждого номера
     public AudioClip errorSound; // Звук при ошибке
     public AudioClip clickSound; // Звук нажатия кнопки
+    public PuzzleHolder puzzleHolder; // Ссылка на менеджер пазлов
 
     [Header("UI")]
     public TextMesh displayText; // 3D текст на телефоне
@@ -180,12 +181,28 @@ public class PhoneSystem : MonoBehaviour
 
         if (player != null)
         {
+            // 1. Находим коллайдер на игроке (CapsuleCollider или BoxCollider)
+            Collider playerCollider = player.GetComponent<Collider>();
+            if (playerCollider != null)
+            {
+                playerCollider.enabled = true; // ПРИНУДИТЕЛЬНО ВКЛЮЧАЕМ КОЛЛАЙДЕР ОБРАТНО
+            }
+
+            // 2. Временно переводим Rigidbody в кинематический режим для безопасной телепортации
+            if (playerRigidbody != null)
+            {
+                playerRigidbody.isKinematic = true;
+                playerRigidbody.velocity = Vector3.zero;
+                playerRigidbody.angularVelocity = Vector3.zero;
+            }
+
+            // 3. Перемещаем игрока и камеру в исходную позицию
             player.transform.position = originalPlayerPos;
             player.transform.rotation = originalPlayerRot;
 
+            // 4. Возвращаем физику в нормальное состояние после перемещения
             if (playerRigidbody != null)
             {
-                playerRigidbody.velocity = Vector3.zero;
                 playerRigidbody.isKinematic = false;
             }
         }
@@ -205,7 +222,6 @@ public class PhoneSystem : MonoBehaviour
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
 
-        HidePlayerModel(false);
 
         if (wrongMessage != null)
             wrongMessage.SetActive(false);
@@ -269,6 +285,7 @@ public class PhoneSystem : MonoBehaviour
                 audioSource.PlayOneShot(phoneSounds[foundIndex]);
                 isWaitingForCompletion = true;
                 ShowSuccess();
+                puzzleHolder.AddPuzzle(); // Прибавить один пазл и обновить экран!
             }
             else
             {
