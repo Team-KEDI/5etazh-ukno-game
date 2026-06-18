@@ -74,7 +74,7 @@ public class PuzzleHolder : MonoBehaviour
         Debug.Log($"Пазл добавлен после задержки! Текущий счет: {CurrentPuzzles}");
 
         // 3. Проверяем, наступил ли финал
-        if (CurrentPuzzles == 6)
+        if (CurrentPuzzles == 8)
         {
             TriggerFinalCutscene();
         }

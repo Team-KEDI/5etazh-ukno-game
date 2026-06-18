@@ -155,6 +155,7 @@ public class MicrophoneInteraction : MonoBehaviour
         // Показываем сообщение
         ShowCompletionMessage();
 
+
         isCompleted = true;
     }
 

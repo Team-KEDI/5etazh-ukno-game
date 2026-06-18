@@ -1,17 +1,17 @@
-using UnityEngine;
+п»їusing UnityEngine;
 
 public class ToggleClipboard : MonoBehaviour
 {
-    [Header("Точка осмотра перед глазами")]
-    public Transform inspectPosition; // Сюда перетащить InspectPos_Anchor из Камеры
+    [Header("Г’Г®Г·ГЄГ  Г®Г±Г¬Г®ГІГ°Г  ГЇГҐГ°ГҐГ¤ ГЈГ«Г Г§Г Г¬ГЁ")]
+    public Transform inspectPosition; // Г‘ГѕГ¤Г  ГЇГҐГ°ГҐГІГ Г№ГЁГІГј InspectPos_Anchor ГЁГ§ ГЉГ Г¬ГҐГ°Г»
 
-    [Header("Точка скрытого хранения")]
-    public Transform hiddenPosition;  // Сюда перетащить HiddenPos_Anchor из Камеры
+    [Header("Г’Г®Г·ГЄГ  Г±ГЄГ°Г»ГІГ®ГЈГ® ГµГ°Г Г­ГҐГ­ГЁГї")]
+    public Transform hiddenPosition;  // Г‘ГѕГ¤Г  ГЇГҐГ°ГҐГІГ Г№ГЁГІГј HiddenPos_Anchor ГЁГ§ ГЉГ Г¬ГҐГ°Г»
 
-    [Header("Массив объектов-галочек")]
-    public GameObject[] taskCheckmarks; // Сюда перетащите ваши объекты Square по порядку!
+    [Header("ГЊГ Г±Г±ГЁГў Г®ГЎГєГҐГЄГІГ®Гў-ГЈГ Г«Г®Г·ГҐГЄ")]
+    public GameObject[] taskCheckmarks; // Г‘ГѕГ¤Г  ГЇГҐГ°ГҐГІГ Г№ГЁГІГҐ ГўГ ГёГЁ Г®ГЎГєГҐГЄГІГ» Square ГЇГ® ГЇГ®Г°ГїГ¤ГЄГі!
 
-    [Header("Настройки скорости")]
+    [Header("ГЌГ Г±ГІГ°Г®Г©ГЄГЁ Г±ГЄГ®Г°Г®Г±ГІГЁ")]
     public float moveSpeed = 12f;
     public float rotateSpeed = 12f;
 
@@ -19,32 +19,41 @@ public class ToggleClipboard : MonoBehaviour
     private bool isPickedUp = false;
     private bool isInspecting = false;
     private Collider objectCollider;
+    public GameObject list;
+    private Renderer renderer;
 
     void Start()
     {
         objectCollider = GetComponent<Collider>();
+        renderer = list.GetComponent<Renderer>();
     }
 
     void Update()
     {
-        // 1. Подбираем контейнер со стола на кнопку E
+        // 1. ГЏГ®Г¤ГЎГЁГ°Г ГҐГ¬ ГЄГ®Г­ГІГҐГ©Г­ГҐГ° Г±Г® Г±ГІГ®Г«Г  Г­Г  ГЄГ­Г®ГЇГЄГі E
         if (isPlayerNear && !isPickedUp && Input.GetKeyDown(KeyCode.E))
         {
             PickUp();
         }
 
-        // 2. Если подобрали, плавно перемещаем контейнер по ПКМ
+        // 2. Г…Г±Г«ГЁ ГЇГ®Г¤Г®ГЎГ°Г Г«ГЁ, ГЇГ«Г ГўГ­Г® ГЇГҐГ°ГҐГ¬ГҐГ№Г ГҐГ¬ ГЄГ®Г­ГІГҐГ©Г­ГҐГ° ГЇГ® ГЏГЉГЊ
         if (isPickedUp)
         {
+            if (!renderer.enabled)
+            {
+                Debug.Log("СЂРµРЅРґРµСЂ РІРєР»СЋС‡РµРЅ");
+                renderer.enabled = true;
+                UpdateCheckmarks();
+            }
             if (Input.GetMouseButtonDown(1))
             {
                 isInspecting = !isInspecting;
             }
 
-            // Выбираем целевой якорь в камере
+            // Г‚Г»ГЎГЁГ°Г ГҐГ¬ Г¶ГҐГ«ГҐГўГ®Г© ГїГЄГ®Г°Гј Гў ГЄГ Г¬ГҐГ°ГҐ
             Transform targetAnchor = isInspecting ? inspectPosition : hiddenPosition;
 
-            // Двигаем и крутим внешний контейнер
+            // Г„ГўГЁГЈГ ГҐГ¬ ГЁ ГЄГ°ГіГІГЁГ¬ ГўГ­ГҐГёГ­ГЁГ© ГЄГ®Г­ГІГҐГ©Г­ГҐГ°
             transform.position = Vector3.Lerp(transform.position, targetAnchor.position, Time.deltaTime * moveSpeed);
             transform.rotation = Quaternion.Slerp(transform.rotation, targetAnchor.rotation, Time.deltaTime * rotateSpeed);
         }
@@ -55,17 +64,17 @@ public class ToggleClipboard : MonoBehaviour
         isPickedUp = true;
         if (objectCollider != null) objectCollider.enabled = false;
 
-        // Находим саму 3D-модель планшетки (первый дочерний объект)
+        // ГЌГ ГµГ®Г¤ГЁГ¬ Г±Г Г¬Гі 3D-Г¬Г®Г¤ГҐГ«Гј ГЇГ«Г Г­ГёГҐГІГЄГЁ (ГЇГҐГ°ГўГ»Г© Г¤Г®Г·ГҐГ°Г­ГЁГ© Г®ГЎГєГҐГЄГІ)
         Transform modelTransform = transform.GetChild(0);
 
-        // Привязываем внешний контейнер к камере игрока
+        // ГЏГ°ГЁГўГїГ§Г»ГўГ ГҐГ¬ ГўГ­ГҐГёГ­ГЁГ© ГЄГ®Г­ГІГҐГ©Г­ГҐГ° ГЄ ГЄГ Г¬ГҐГ°ГҐ ГЁГЈГ°Г®ГЄГ 
         transform.SetParent(inspectPosition.parent);
 
-        // Сбрасываем координаты контейнера
+        // Г‘ГЎГ°Г Г±Г»ГўГ ГҐГ¬ ГЄГ®Г®Г°Г¤ГЁГ­Г ГІГ» ГЄГ®Г­ГІГҐГ©Г­ГҐГ°Г 
         transform.localPosition = Vector3.zero;
         transform.localRotation = Quaternion.identity;
 
-        // Задаем ваши идеальные локальные координаты для 3D-модели
+        // Г‡Г Г¤Г ГҐГ¬ ГўГ ГёГЁ ГЁГ¤ГҐГ Г«ГјГ­Г»ГҐ Г«Г®ГЄГ Г«ГјГ­Г»ГҐ ГЄГ®Г®Г°Г¤ГЁГ­Г ГІГ» Г¤Г«Гї 3D-Г¬Г®Г¤ГҐГ«ГЁ
         if (modelTransform != null)
         {
             modelTransform.localPosition = new Vector3(0.9f, 0.2f, 0.8f);
@@ -73,12 +82,12 @@ public class ToggleClipboard : MonoBehaviour
         }
     }
 
-    // Эту функцию будут вызывать ваши мини-игры при победе
+    // ГќГІГі ГґГіГ­ГЄГ¶ГЁГѕ ГЎГіГ¤ГіГІ ГўГ»Г§Г»ГўГ ГІГј ГўГ ГёГЁ Г¬ГЁГ­ГЁ-ГЁГЈГ°Г» ГЇГ°ГЁ ГЇГ®ГЎГҐГ¤ГҐ
     public void CompleteTask(int taskIndex)
     {
         if (taskIndex >= 0 && taskIndex < taskCheckmarks.Length)
         {
-            taskCheckmarks[taskIndex].SetActive(true); // Включаем нужную галочку
+            taskCheckmarks[taskIndex].SetActive(true); // Г‚ГЄГ«ГѕГ·Г ГҐГ¬ Г­ГіГ¦Г­ГіГѕ ГЈГ Г«Г®Г·ГЄГі
         }
     }
 
@@ -90,5 +99,17 @@ public class ToggleClipboard : MonoBehaviour
     private void OnTriggerExit(Collider other)
     {
         if (other.CompareTag("Player")) isPlayerNear = false;
+    }
+
+    private void UpdateCheckmarks()
+    {
+        foreach (GameObject cm in taskCheckmarks)
+        {
+            Renderer rnd = cm.GetComponent<Renderer>();
+            if (rnd != null)
+            {
+                rnd.enabled = true;
+            }
+        }
     }
 }

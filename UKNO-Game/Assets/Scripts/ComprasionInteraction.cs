@@ -57,6 +57,7 @@ public class ComprasionInteractions : MonoBehaviour
     // Для отключения скриптов управления мышью
     private MonoBehaviour[] mouseControlScripts;
     private bool[] mouseControlScriptsEnabledState;
+    [SerializeField] private ToggleClipboard toggleClipboard;
 
     void Start()
     {
@@ -426,6 +427,7 @@ public class ComprasionInteractions : MonoBehaviour
         }
         puzzleHolder.AddPuzzle(); // Прибавить один пазл и обновить экран!
         ClearSelectedHighlight();
+        toggleClipboard.CompleteTask(5);
     }
 
 

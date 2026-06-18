@@ -46,6 +46,7 @@ public class PhoneSystem : MonoBehaviour
 
     private bool isPlayerNear = false;
     private bool isCompleted = false;
+    [SerializeField] private ToggleClipboard tg;
 
     void Start()
     {
@@ -344,6 +345,7 @@ public class PhoneSystem : MonoBehaviour
             successMessage.SetActive(true);
             Invoke("HideSuccess", 1.5f);
         }
+        tg.CompleteTask(2);
     }
 
     void HideSuccess()
