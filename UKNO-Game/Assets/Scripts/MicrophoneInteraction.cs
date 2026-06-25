@@ -7,6 +7,7 @@ public class MicrophoneInteraction : MonoBehaviour
     [Header("Настройки")]
     public Material highlightMaterial;
     public Material defaultMaterial;
+    public PuzzleHolder puzzleHolder; // Ссылка на менеджер пазлов
 
     [Header("UI элементы")]
     public GameObject textInputPanel;
@@ -20,13 +21,18 @@ public class MicrophoneInteraction : MonoBehaviour
     public AudioClip successSound;
     private AudioSource audioSource;
 
+    [SerializeField] private Camera _cam;
+    private CameraRotation _camScript;
+
     private bool isPlayerNear = false;
     private bool isCompleted = false;
     private Renderer objectRenderer;
     private GameObject player;
+    private bool isOpened = false;
 
     void Start()
     {
+        _camScript = _cam.GetComponent<CameraRotation>();
         objectRenderer = GetComponent<Renderer>();
         defaultMaterial = objectRenderer.material;
         audioSource = GetComponent<AudioSource>();
@@ -36,11 +42,14 @@ public class MicrophoneInteraction : MonoBehaviour
         errorMessageText.gameObject.SetActive(false);
         hint.SetActive(false);
         successText.gameObject.SetActive(false);
+
+        PlayerPrefs.SetString("MascotPhrase", "Приходите и посмотрите вживую!");
+        PlayerPrefs.Save();
     }
 
     void Update()
     {
-        if (!isCompleted && isPlayerNear && Input.GetKeyDown(KeyCode.E))
+        if (!isCompleted && !isOpened && isPlayerNear && Input.GetKeyDown(KeyCode.E))
         {
             OpenTextInput();
         }
@@ -84,11 +93,13 @@ public class MicrophoneInteraction : MonoBehaviour
         errorMessageText.gameObject.SetActive(false);
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
+        isOpened = true;
 
         // Отключаем движение игрока
         if (player != null)
         {
             player.GetComponent<PlayerMovement>().canMove = false;
+            _camScript.enabled = false;
         }
     }
 
@@ -115,7 +126,7 @@ public class MicrophoneInteraction : MonoBehaviour
         PlayerPrefs.Save();
 
         // Отмечаем задание выполненным
-        PlayerPrefs.SetInt("PodcastQuestCompleted", 1);
+        puzzleHolder.AddPuzzle(); // Прибавить один пазл и обновить экран!
 
         // Закрываем UI
         textInputPanel.SetActive(false);
@@ -128,6 +139,7 @@ public class MicrophoneInteraction : MonoBehaviour
         if (player != null)
         {
             player.GetComponent<PlayerMovement>().canMove = true;
+            _camScript.enabled = true;
         }
 
         // Проигрываем звук успеха
@@ -136,11 +148,13 @@ public class MicrophoneInteraction : MonoBehaviour
             audioSource.PlayOneShot(successSound);
         }
 
+        MapManager mapManager = FindObjectOfType<MapManager>();
+        if (mapManager != null)
+            mapManager.UnlockZone(4);
+
         // Показываем сообщение
         ShowCompletionMessage();
 
-        // Обновляем счетчик пазлов
-        UpdatePuzzleCounter();
 
         isCompleted = true;
     }
@@ -171,6 +185,11 @@ public class MicrophoneInteraction : MonoBehaviour
 
     void ShowCompletionMessage()
     {
+        ToggleClipboard clipboard = FindObjectOfType<ToggleClipboard>();
+        if (clipboard != null)
+        {
+            clipboard.CompleteTask(0);
+        }
         successText.text = "Задание выполнено: Подкастерская!\nПолучен фрагмент пазла!";
         successText.gameObject.SetActive(true);
 
@@ -178,23 +197,8 @@ public class MicrophoneInteraction : MonoBehaviour
         
     }
 
-    void UpdatePuzzleCounter()
-    {
-        if (puzzleCounterText != null)
-        {
-            int completedQuests = PlayerPrefs.GetInt("PodcastQuestCompleted", 0);
-            puzzleCounterText.text = "Пазлы: " + completedQuests;
-        }
-    }
-
     void HideNotification()
     {
         successText.gameObject.SetActive(false);
     }
-}
-
-// Интерфейс для интерактивных объектов
-public interface IInteractable
-{
-    void Interact();
 }
